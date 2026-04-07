@@ -722,13 +722,23 @@ async function init() {
     opFlags.sort((a, b) => b.date.localeCompare(a.date));
     const flagRow = opFlags[0] ?? null;
 
-    // Debug targets brut
-    console.log('[targets] brut API:', targetsAll);
+    // Normalisation annee_mois : numéro de série Excel → "YYYY-MM"
+    function excelSerialToYearMonth(serial) {
+      const d = new Date((serial - 25569) * 86400 * 1000);
+      const y = d.getUTCFullYear();
+      const m = String(d.getUTCMonth() + 1).padStart(2, '0');
+      return `${y}-${m}`;
+    }
+    function normalizeYearMonth(v) {
+      const n = Number(v);
+      if (!isNaN(n) && n > 40000) return excelSerialToYearMonth(n);
+      return v; // déjà une string "YYYY-MM"
+    }
+    targetsAll.forEach(r => { r.annee_mois = normalizeYearMonth(r.annee_mois); });
 
     // Target row du mois courant
     const ym = todayStr.slice(0, 7);
     const targetRow = targetsAll.find(r => String(r.operateur_id) === String(opId) && r.annee_mois === ym) ?? null;
-    console.log('[targets] ym:', ym, '| opId:', opId, '| targetRow:', targetRow);
 
     // Historique pour onglet 2 (réutiliser dataOp + dataTeam)
     histData    = dataTeam;
