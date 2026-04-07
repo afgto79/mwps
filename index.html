@@ -702,8 +702,9 @@ async function init() {
       fetchSheet('data!A:H'),
     ]);
 
-    // "Aujourd'hui" = date la plus récente dans data pour cet opérateur
-    const opRows = dataOp.filter(r => r.operateur_id === opId);
+    // Dernier jour travaillé = date la plus récente où nb_ventes_comptoir_j > 0
+    const opRows = dataOp
+      .filter(r => r.operateur_id === opId && parseInt2(r.nb_ventes_comptoir_j) > 0);
     opRows.sort((a, b) => b.date.localeCompare(a.date));
     const todayStr   = opRows[0]?.date ?? '';
     const todayData  = opRows[0] ?? null;
