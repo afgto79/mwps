@@ -395,10 +395,7 @@ function fmtPct(v) {
 function fmtDate(iso) {
   if (!iso) return '—';
   const [y, m, d] = iso.split('-');
-  const days = ['Dim', 'Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam'];
-  const months = ['jan', 'fév', 'mar', 'avr', 'mai', 'juin', 'juil', 'août', 'sep', 'oct', 'nov', 'déc'];
-  const dt = new Date(y, m - 1, d);
-  return `${days[dt.getDay()]} ${parseInt(d)}/${parseInt(m)}`;
+  return `Données du ${parseInt(d)}/${parseInt(m)}`;
 }
 
 // ═══════════════════════════════════════════════════════════════════
@@ -726,8 +723,10 @@ async function init() {
     const todayStr   = opRows[0]?.date ?? '';
     const todayData  = opRows[0] ?? null;
 
-    // Flag row du jour
-    const flagRow = flagsAll.find(r => r.operateur_id === opId && r.date === todayStr) ?? null;
+    // Flag row : ligne la plus récente pour cet opérateur (indépendant de todayStr)
+    const opFlags = flagsAll.filter(r => r.operateur_id === opId);
+    opFlags.sort((a, b) => b.date.localeCompare(a.date));
+    const flagRow = opFlags[0] ?? null;
 
     // Target row du mois courant
     const ym = todayStr.slice(0, 7);
