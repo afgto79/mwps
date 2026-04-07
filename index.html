@@ -581,63 +581,47 @@ function renderHistory() {
     return kpi === 'pmho' ? parseFloat2(t.cible_PMHO) : parseFloat2(t.cible_taux_PCA);
   }
 
-  function buildSegmentDataset(labels, values, kpi) {
-    // Un dataset par point avec couleur selon dépassement cible
-    return values.map((v, i) => ({
-      x: labels[i],
-      y: v,
-      cible: targetForDate(labels[i], kpi),
-    }));
-  }
-
   function colorForPoint(v, cible) {
     if (v === null || cible === null || cible === 0) return 'rgba(139,143,168,0.7)';
-    if (v >= cible)      return '#22c55e';
-    if (v >= cible * 0.9) return '#f59e0b';
+    if (v >= cible)        return '#22c55e';
+    if (v >= cible * 0.9)  return '#f59e0b';
     return '#ef4444';
   }
 
-  function buildLineData(labels, values, kpi) {
-    const pts   = values.map((v, i) => ({ x: labels[i], y: v }));
-    const cibles = labels.map(d => ({ x: d, y: targetForDate(d, kpi) }));
-    return { pts, cibles };
-  }
-
-  function makeChart(canvasId, { pts, cibles }, labelMain, labelCible, fmtY) {
+  function makeChart(canvasId, labels, mainVals, cibleVals, labelMain, labelCible, fmtY) {
+    console.log(`[${canvasId}] points: ${mainVals.length}, labels sample:`, labels.slice(0, 3));
     const ctx = document.getElementById(canvasId).getContext('2d');
-    const pointColors = pts.map((p, i) => colorForPoint(p.y, cibles[i]?.y ?? null));
+    const pointColors = mainVals.map((v, i) => colorForPoint(v, cibleVals[i]));
 
     return new Chart(ctx, {
       type: 'line',
       data: {
+        labels,
         datasets: [
           {
             label: labelMain,
-            data: pts,
-            parsing: false,
+            data: mainVals,
             borderColor: pointColors,
             backgroundColor: 'transparent',
             pointBackgroundColor: pointColors,
-            pointRadius: 3,
+            pointRadius: 2,
             pointHoverRadius: 5,
             borderWidth: 2,
             tension: 0.3,
             segment: {
-              borderColor: ctx2 => {
-                const i = ctx2.p0DataIndex;
-                return colorForPoint(pts[i]?.y, cibles[i]?.y ?? null);
-              },
+              borderColor: ctx2 => colorForPoint(mainVals[ctx2.p0DataIndex], cibleVals[ctx2.p0DataIndex]),
             },
+            spanGaps: false,
           },
           {
             label: labelCible,
-            data: cibles,
-            parsing: false,
+            data: cibleVals,
             borderColor: 'rgba(139,143,168,0.5)',
             borderDash: [5, 4],
             pointRadius: 0,
             borderWidth: 1.5,
             tension: 0,
+            spanGaps: true,
           },
         ],
       },
@@ -652,7 +636,7 @@ function renderHistory() {
             titleColor: '#8b8fa8',
             bodyColor: '#f0f0f0',
             callbacks: {
-              label: item => `${item.dataset.label}: ${fmtY(item.raw.y)}`,
+              label: item => `${item.dataset.label}: ${fmtY(item.raw)}`,
             },
           },
         },
@@ -661,8 +645,9 @@ function renderHistory() {
             type: 'category',
             ticks: {
               color: '#8b8fa8',
-              maxTicksLimit: 6,
+              maxTicksLimit: 8,
               font: { size: 10 },
+              maxRotation: 0,
             },
             grid: { color: '#2a2d36' },
           },
@@ -679,14 +664,14 @@ function renderHistory() {
     });
   }
 
-  const pmhoLineData = buildLineData(labels, pmhoVals, 'pmho');
-  const pcaLineData  = buildLineData(labels, pcaVals,  'pca');
+  const pmhoCibles = labels.map(d => targetForDate(d, 'pmho'));
+  const pcaCibles  = labels.map(d => targetForDate(d, 'pca'));
 
   if (chartPmho) chartPmho.destroy();
   if (chartPca)  chartPca.destroy();
 
-  chartPmho = makeChart('chart-pmho', pmhoLineData, 'PMHO', 'Cible', v => v !== null ? v.toFixed(2) + ' €' : '—');
-  chartPca  = makeChart('chart-pca',  pcaLineData,  'Taux PCA', 'Cible', v => v !== null ? Math.round(v * 100) + '%' : '—');
+  chartPmho = makeChart('chart-pmho', labels, pmhoVals, pmhoCibles, 'PMHO',    'Cible', v => v !== null ? v.toFixed(2) + ' €' : '—');
+  chartPca  = makeChart('chart-pca',  labels, pcaVals,  pcaCibles,  'Taux PCA','Cible', v => v !== null ? Math.round(v * 100) + '%' : '—');
 }
 
 // ═══════════════════════════════════════════════════════════════════
