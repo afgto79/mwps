@@ -50,7 +50,13 @@
       padding: 12px 12px calc(var(--nav-h) + 12px);
       display: none;
     }
-    .tab-content.active { display: block; }
+    .tab-content.active { display: flex; flex-direction: column; }
+
+    /* Onglet Aujourd'hui : répartir l'espace sans scroll */
+    #tab-today { overflow-y: hidden; }
+    #tab-today .kpi-grid { flex-shrink: 0; }
+    #tab-today .badges   { flex-shrink: 0; }
+    #tab-today #team-section { flex: 1; overflow-y: auto; min-height: 0; }
 
     /* ── Bottom nav ────────────────────────────────────────────────────── */
     nav {
@@ -96,6 +102,7 @@
     }
     .op-name { font-size: 22px; font-weight: 700; }
     .op-date { font-size: 13px; color: var(--muted); }
+    .op-header { flex-shrink: 0; }
 
     /* ── KPI grid ──────────────────────────────────────────────────────── */
     .kpi-grid {
@@ -714,9 +721,13 @@ async function init() {
     opFlags.sort((a, b) => b.date.localeCompare(a.date));
     const flagRow = opFlags[0] ?? null;
 
+    // Debug targets brut
+    console.log('[targets] brut API:', targetsAll);
+
     // Target row du mois courant
     const ym = todayStr.slice(0, 7);
-    const targetRow = targetsAll.find(r => r.operateur_id === opId && r.annee_mois === ym) ?? null;
+    const targetRow = targetsAll.find(r => String(r.operateur_id) === String(opId) && r.annee_mois === ym) ?? null;
+    console.log('[targets] ym:', ym, '| opId:', opId, '| targetRow:', targetRow);
 
     // Historique pour onglet 2 (réutiliser dataOp + dataTeam)
     histData    = dataTeam;
