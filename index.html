@@ -1,0 +1,759 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+  <meta name="theme-color" content="#0f1117">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <title>MWPS Dashboard</title>
+  <link rel="manifest" href="manifest.json">
+  <link rel="apple-touch-icon" href="icon-192.png">
+  <script src="config.js"></script>
+  <style>
+    /* ── Reset & base ──────────────────────────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:       #0f1117;
+      --card:     #1c1f26;
+      --card2:    #252830;
+      --text:     #f0f0f0;
+      --muted:    #8b8fa8;
+      --green:    #22c55e;
+      --orange:   #f59e0b;
+      --red:      #ef4444;
+      --nav-h:    56px;
+    }
+
+    html, body {
+      height: 100%;
+      background: var(--bg);
+      color: var(--text);
+      font-family: system-ui, -apple-system, sans-serif;
+      font-size: 15px;
+      overflow: hidden;
+    }
+
+    /* ── Layout ────────────────────────────────────────────────────────── */
+    #app {
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+      max-width: 420px;
+      margin: 0 auto;
+    }
+
+    .tab-content {
+      flex: 1;
+      overflow-y: auto;
+      padding: 12px 12px calc(var(--nav-h) + 12px);
+      display: none;
+    }
+    .tab-content.active { display: block; }
+
+    /* ── Bottom nav ────────────────────────────────────────────────────── */
+    nav {
+      position: fixed;
+      bottom: 0;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 100%;
+      max-width: 420px;
+      height: var(--nav-h);
+      background: var(--card);
+      display: flex;
+      border-top: 1px solid #2a2d36;
+      z-index: 100;
+    }
+    nav button {
+      flex: 1;
+      background: none;
+      border: none;
+      color: var(--muted);
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: color .15s;
+      letter-spacing: .03em;
+    }
+    nav button.active { color: var(--text); border-top: 2px solid var(--green); }
+
+    /* ── Cards ─────────────────────────────────────────────────────────── */
+    .card {
+      background: var(--card);
+      border-radius: 12px;
+      padding: 14px 16px;
+      margin-bottom: 10px;
+    }
+
+    /* ── Header opérateur ──────────────────────────────────────────────── */
+    .op-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 10px;
+    }
+    .op-name { font-size: 22px; font-weight: 700; }
+    .op-date { font-size: 13px; color: var(--muted); }
+
+    /* ── KPI grid ──────────────────────────────────────────────────────── */
+    .kpi-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-bottom: 10px;
+    }
+    .kpi-box {
+      background: var(--card2);
+      border-radius: 10px;
+      padding: 12px 14px;
+    }
+    .kpi-label {
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: .06em;
+      color: var(--muted);
+      text-transform: uppercase;
+      margin-bottom: 4px;
+    }
+    .kpi-value {
+      font-size: 26px;
+      font-weight: 700;
+      line-height: 1.1;
+    }
+    .kpi-cible {
+      font-size: 11px;
+      color: var(--muted);
+      margin-top: 4px;
+    }
+    .kpi-delta {
+      font-size: 12px;
+      font-weight: 600;
+      margin-top: 5px;
+    }
+    .sig-green  { color: var(--green); }
+    .sig-orange { color: var(--orange); }
+    .sig-red    { color: var(--red); }
+    .sig-none   { color: var(--muted); }
+
+    /* ── Streak / propositions ─────────────────────────────────────────── */
+    .badges { display: flex; flex-direction: column; gap: 7px; margin-bottom: 10px; }
+    .badge-row {
+      background: var(--card2);
+      border-radius: 8px;
+      padding: 9px 14px;
+      font-size: 13px;
+      font-weight: 600;
+    }
+
+    /* ── Classement équipe ─────────────────────────────────────────────── */
+    .team-title {
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: .06em;
+      color: var(--muted);
+      text-transform: uppercase;
+      margin-bottom: 8px;
+    }
+    .team-row {
+      display: flex;
+      align-items: center;
+      padding: 6px 0;
+      border-bottom: 1px solid #2a2d36;
+      font-size: 13px;
+    }
+    .team-row:last-child { border-bottom: none; }
+    .team-rank { width: 22px; color: var(--muted); font-size: 12px; }
+    .team-op   { flex: 1; font-weight: 700; }
+    .team-val  { width: 48px; text-align: right; font-weight: 600; }
+    .team-sig  { width: 20px; text-align: right; margin-left: 6px; font-size: 14px; }
+
+    /* ── Spinner ───────────────────────────────────────────────────────── */
+    #spinner {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100%;
+      gap: 14px;
+      color: var(--muted);
+      font-size: 13px;
+    }
+    .spin {
+      width: 32px; height: 32px;
+      border: 3px solid #2a2d36;
+      border-top-color: var(--green);
+      border-radius: 50%;
+      animation: spin .7s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    #error-msg { color: var(--red); font-size: 14px; text-align: center; padding: 20px; }
+
+    /* ── Pop-up ────────────────────────────────────────────────────────── */
+    #popup-overlay {
+      display: none;
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,.72);
+      z-index: 200;
+      align-items: center;
+      justify-content: center;
+    }
+    #popup-overlay.show { display: flex; }
+    #popup-card {
+      background: var(--card);
+      border-radius: 16px;
+      padding: 28px 24px 20px;
+      max-width: 320px;
+      width: 90%;
+      text-align: center;
+      animation: popIn .2s ease-out;
+    }
+    @keyframes popIn {
+      from { transform: scale(.88); opacity: 0; }
+      to   { transform: scale(1);   opacity: 1; }
+    }
+    #popup-icon  { font-size: 48px; margin-bottom: 10px; }
+    #popup-msg   { font-size: 17px; font-weight: 700; margin-bottom: 20px; line-height: 1.3; }
+    #popup-ok {
+      background: var(--green);
+      color: #000;
+      border: none;
+      border-radius: 8px;
+      padding: 10px 32px;
+      font-size: 15px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    /* ── Historique ────────────────────────────────────────────────────── */
+    .chart-wrap {
+      background: var(--card);
+      border-radius: 12px;
+      padding: 14px;
+      margin-bottom: 10px;
+    }
+    .chart-title {
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: .05em;
+      color: var(--muted);
+      text-transform: uppercase;
+      margin-bottom: 10px;
+    }
+    canvas { display: block; width: 100% !important; }
+  </style>
+</head>
+<body>
+<div id="app">
+
+  <!-- ── Spinner / erreur ── -->
+  <div id="spinner">
+    <div class="spin"></div>
+    Chargement…
+  </div>
+  <div id="error-msg" style="display:none"></div>
+
+  <!-- ── Onglet 1 : Aujourd'hui ── -->
+  <div id="tab-today" class="tab-content">
+
+    <!-- En-tête opérateur -->
+    <div class="op-header">
+      <span class="op-name" id="op-name">—</span>
+      <span class="op-date" id="op-date">—</span>
+    </div>
+
+    <!-- KPIs PMHO / PCA -->
+    <div class="kpi-grid">
+      <div class="kpi-box">
+        <div class="kpi-label">PMHO</div>
+        <div class="kpi-value" id="kpi-pmho">—</div>
+        <div class="kpi-cible" id="kpi-pmho-cible"></div>
+        <div class="kpi-delta" id="kpi-pmho-delta"></div>
+      </div>
+      <div class="kpi-box">
+        <div class="kpi-label">PCA</div>
+        <div class="kpi-value" id="kpi-pca">—</div>
+        <div class="kpi-cible" id="kpi-pca-cible"></div>
+        <div class="kpi-delta" id="kpi-pca-delta"></div>
+      </div>
+    </div>
+
+    <!-- Streak & propositions -->
+    <div class="badges" id="badges"></div>
+
+    <!-- Classement équipe -->
+    <div class="card" id="team-section" style="display:none">
+      <div class="team-title">EQUIPE — PCA aujourd'hui</div>
+      <div id="team-list"></div>
+    </div>
+
+  </div>
+
+  <!-- ── Onglet 2 : Historique ── -->
+  <div id="tab-history" class="tab-content">
+    <div class="chart-wrap">
+      <div class="chart-title">PMHO — 365 jours</div>
+      <canvas id="chart-pmho" height="180"></canvas>
+    </div>
+    <div class="chart-wrap">
+      <div class="chart-title">Taux PCA — 365 jours</div>
+      <canvas id="chart-pca" height="180"></canvas>
+    </div>
+  </div>
+
+  <!-- ── Navigation ── -->
+  <nav>
+    <button id="nav-today"   class="active" onclick="switchTab('today')">AUJOURD'HUI</button>
+    <button id="nav-history"               onclick="switchTab('history')">HISTORIQUE</button>
+  </nav>
+</div>
+
+<!-- ── Pop-up ── -->
+<div id="popup-overlay">
+  <div id="popup-card">
+    <div id="popup-icon"></div>
+    <div id="popup-msg"></div>
+    <button id="popup-ok" onclick="closePopup()">OK</button>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+// ═══════════════════════════════════════════════════════════════════
+// Utilitaires Sheets
+// ═══════════════════════════════════════════════════════════════════
+
+async function fetchSheet(range) {
+  const url = `https://sheets.googleapis.com/v4/spreadsheets/${CONFIG.SHEETS_ID}/values/${encodeURIComponent(range)}?key=${CONFIG.API_KEY}`;
+  const resp = await fetch(url);
+  if (!resp.ok) throw new Error(`Sheets API ${resp.status} pour ${range}`);
+  const json = await resp.json();
+  const rows = json.values || [];
+  if (rows.length < 2) return [];
+  const headers = rows[0];
+  return rows.slice(1).map(row => {
+    const obj = {};
+    headers.forEach((h, i) => { obj[h] = row[i] ?? ''; });
+    return obj;
+  });
+}
+
+function parseFloat2(v) {
+  const f = parseFloat(v);
+  return isNaN(f) ? null : f;
+}
+function parseInt2(v) {
+  const i = parseInt(v);
+  return isNaN(i) ? null : i;
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// Navigation onglets
+// ═══════════════════════════════════════════════════════════════════
+
+let historyInitialized = false;
+
+function switchTab(name) {
+  document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+  document.querySelectorAll('nav button').forEach(el => el.classList.remove('active'));
+  document.getElementById(`tab-${name}`).classList.add('active');
+  document.getElementById(`nav-${name}`).classList.add('active');
+  if (name === 'history' && !historyInitialized) {
+    renderHistory();
+    historyInitialized = true;
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// Couleur signal
+// ═══════════════════════════════════════════════════════════════════
+
+function sigClass(value, cible) {
+  if (value === null || cible === null || cible === 0) return 'sig-none';
+  const ratio = value / cible;
+  if (ratio >= 1)          return 'sig-green';
+  if (ratio >= 0.9)        return 'sig-orange';
+  return 'sig-red';
+}
+function sigEmoji(cls) {
+  return { 'sig-green': '🟢', 'sig-orange': '🟡', 'sig-red': '🔴', 'sig-none': '' }[cls];
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// Formatage
+// ═══════════════════════════════════════════════════════════════════
+
+function fmtPMHO(v) {
+  if (v === null) return '—';
+  return v.toFixed(2).replace('.', ',') + ' €';
+}
+function fmtPct(v) {
+  if (v === null) return '—';
+  return Math.round(v * 100) + '%';
+}
+function fmtDate(iso) {
+  if (!iso) return '—';
+  const [y, m, d] = iso.split('-');
+  const days = ['Dim', 'Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam'];
+  const months = ['jan', 'fév', 'mar', 'avr', 'mai', 'juin', 'juil', 'août', 'sep', 'oct', 'nov', 'déc'];
+  const dt = new Date(y, m - 1, d);
+  return `${days[dt.getDay()]} ${parseInt(d)}/${parseInt(m)}`;
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// Pop-up gamification
+// ═══════════════════════════════════════════════════════════════════
+
+const POPUP_RULES = [
+  { flag: r => r.record_PMHO === 'True',                   icon: '🏆', msg: 'Record perso PMHO !' },
+  { flag: r => r.record_taux_PCA === 'True',               icon: '🏆', msg: 'Record perso PCA !' },
+  { flag: r => parseInt2(r.streak_PCA) >= 7,               icon: '🔥', msg: '7 jours de suite au-dessus de la cible !' },
+  { flag: r => parseInt2(r.streak_PCA) >= 3,               icon: '🔥', msg: '3 jours consécutifs !' },
+  { flag: r => r.best_team_PCA === 'True',                  icon: '⭐', msg: 'Meilleur taux équipe aujourd\'hui !' },
+  { flag: r => r.progression_PCA === 'True',               icon: '📈', msg: 'PCA en progression cette semaine !' },
+  { flag: r => r.objectif_mensuel_PCA_atteint === 'True',  icon: '✅', msg: 'Objectif mensuel PCA atteint !' },
+];
+
+function maybeShowPopup(flagRow, todayStr) {
+  const key = `mwps_popup_${opId}_${todayStr}`;
+  if (localStorage.getItem(key)) return;
+
+  for (const rule of POPUP_RULES) {
+    if (flagRow && rule.flag(flagRow)) {
+      document.getElementById('popup-icon').textContent = rule.icon;
+      document.getElementById('popup-msg').textContent  = rule.msg;
+      document.getElementById('popup-overlay').classList.add('show');
+      localStorage.setItem(key, '1');
+      return;
+    }
+  }
+}
+
+function closePopup() {
+  document.getElementById('popup-overlay').classList.remove('show');
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// Onglet Aujourd'hui
+// ═══════════════════════════════════════════════════════════════════
+
+function renderToday(todayData, flagRow, targetRow, teamData) {
+  const opInitials = CONFIG.OPERATORS[opId] || opId;
+  const todayStr   = todayData ? todayData.date : '';
+
+  document.getElementById('op-name').textContent = opInitials;
+  document.getElementById('op-date').textContent = fmtDate(todayStr);
+
+  // ── PMHO ──
+  const pmho      = parseFloat2(todayData?.PMHO);
+  const ciblePmho = parseFloat2(flagRow?.cible_j_PMHO);
+  const pmhoCls   = sigClass(pmho, ciblePmho);
+
+  const pmhoEl = document.getElementById('kpi-pmho');
+  pmhoEl.textContent = fmtPMHO(pmho);
+  pmhoEl.className = `kpi-value ${pmhoCls}`;
+
+  document.getElementById('kpi-pmho-cible').textContent =
+    ciblePmho !== null ? `Cible ${fmtPMHO(ciblePmho)}` : '';
+
+  const pmhoDeltaEl = document.getElementById('kpi-pmho-delta');
+  if (pmho !== null && ciblePmho !== null) {
+    const delta = pmho - ciblePmho;
+    pmhoDeltaEl.textContent = `${sigEmoji(pmhoCls)} ${delta >= 0 ? '+' : ''}${delta.toFixed(2).replace('.', ',')} €`;
+    pmhoDeltaEl.className = `kpi-delta ${pmhoCls}`;
+  } else {
+    pmhoDeltaEl.textContent = '';
+  }
+
+  // ── PCA ──
+  const taux      = parseFloat2(todayData?.taux_acceptation);
+  const ciblePca  = parseFloat2(flagRow?.cible_j_PCA);
+  const pcaCls    = sigClass(taux, ciblePca);
+
+  const pcaEl = document.getElementById('kpi-pca');
+  pcaEl.textContent = fmtPct(taux);
+  pcaEl.className = `kpi-value ${pcaCls}`;
+
+  document.getElementById('kpi-pca-cible').textContent =
+    ciblePca !== null ? `Cible ${fmtPct(ciblePca)}` : '';
+
+  const pcaDeltaEl = document.getElementById('kpi-pca-delta');
+  if (taux !== null && ciblePca !== null) {
+    const same = Math.abs(taux - ciblePca) < 0.005;
+    pcaDeltaEl.textContent = `${sigEmoji(pcaCls)} ${same ? '=' : (taux >= ciblePca ? '+' : '') + Math.round((taux - ciblePca) * 100) + ' pts'}`;
+    pcaDeltaEl.className = `kpi-delta ${pcaCls}`;
+  } else {
+    pcaDeltaEl.textContent = '';
+  }
+
+  // ── Badges streak / propositions ──
+  const badgesEl  = document.getElementById('badges');
+  const fragments = [];
+
+  const streakPca = parseInt2(flagRow?.streak_PCA);
+  if (streakPca && streakPca > 0) {
+    const icon = streakPca >= 3 ? '🔥' : '✨';
+    fragments.push(`<div class="badge-row">${icon} Streak PCA : ${streakPca} jour${streakPca > 1 ? 's' : ''}</div>`);
+  }
+
+  const nbPca = parseInt2(todayData?.nb_PCA) ?? 0;
+  const nbPcr = parseInt2(todayData?.nb_PCR) ?? 0;
+  const volJ  = nbPca + nbPcr;
+  const cibleVol = parseInt2(targetRow?.cible_nb_propositions_j);
+  if (cibleVol !== null && cibleVol > 0) {
+    const volCls = volJ >= cibleVol ? 'sig-green' : (volJ >= cibleVol * 0.9 ? 'sig-orange' : 'sig-red');
+    fragments.push(`<div class="badge-row">💼 Propositions : <span class="${volCls}">${volJ}/${cibleVol}</span></div>`);
+  } else if (volJ > 0) {
+    fragments.push(`<div class="badge-row">💼 Propositions : ${volJ}</div>`);
+  }
+
+  badgesEl.innerHTML = fragments.join('');
+
+  // ── Classement équipe ──
+  renderTeam(teamData, todayStr, opId, flagRow);
+
+  // ── Pop-up ──
+  maybeShowPopup(flagRow, todayStr);
+}
+
+function renderTeam(teamData, todayStr, currentOpId, flagRow) {
+  const section  = document.getElementById('team-section');
+  const listEl   = document.getElementById('team-list');
+  const todayOps = teamData.filter(r => r.date === todayStr);
+
+  const workers  = todayOps.filter(r => parseInt2(r.nb_ventes_comptoir_j) > 0);
+  if (workers.length <= 1) { section.style.display = 'none'; return; }
+
+  const withTaux = workers.filter(r => parseFloat2(r.taux_acceptation) !== null);
+  const noTaux   = workers.filter(r => parseFloat2(r.taux_acceptation) === null);
+
+  withTaux.sort((a, b) => parseFloat2(b.taux_acceptation) - parseFloat2(a.taux_acceptation));
+  const sorted = [...withTaux, ...noTaux];
+
+  const ciblePca = parseFloat2(flagRow?.cible_j_PCA);
+
+  let html = '';
+  sorted.forEach((row, i) => {
+    const opInit = CONFIG.OPERATORS[row.operateur_id] || row.operateur_id;
+    const taux   = parseFloat2(row.taux_acceptation);
+    const cls    = taux !== null ? sigClass(taux, ciblePca) : 'sig-none';
+    const isSelf = row.operateur_id === currentOpId;
+    html += `<div class="team-row${isSelf ? '" style="font-weight:800' : ''}">
+      <span class="team-rank">${i + 1}.</span>
+      <span class="team-op">${opInit}</span>
+      <span class="team-val ${cls}">${fmtPct(taux)}</span>
+      <span class="team-sig">${sigEmoji(cls)}</span>
+    </div>`;
+  });
+
+  listEl.innerHTML = html;
+  section.style.display = 'block';
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// Onglet Historique
+// ═══════════════════════════════════════════════════════════════════
+
+let histData    = null;
+let histTargets = null;
+let chartPmho   = null;
+let chartPca    = null;
+
+function renderHistory() {
+  if (!histData) return;
+
+  const cutoff  = new Date();
+  cutoff.setDate(cutoff.getDate() - 365);
+  const cutStr  = cutoff.toISOString().slice(0, 10);
+
+  const rows = histData
+    .filter(r => r.operateur_id === opId && r.date >= cutStr && parseInt2(r.nb_ventes_comptoir_j) > 0)
+    .sort((a, b) => a.date.localeCompare(b.date));
+
+  const labels  = rows.map(r => r.date);
+  const pmhoVals = rows.map(r => parseFloat2(r.PMHO));
+  const pcaVals  = rows.map(r => parseFloat2(r.taux_acceptation));
+
+  // Construire la cible glissante par date (lire depuis targets par mois)
+  function targetForDate(dateStr, kpi) {
+    if (!histTargets) return null;
+    const ym = dateStr.slice(0, 7);
+    const t  = histTargets.find(r => r.annee_mois === ym && r.operateur_id === opId);
+    if (!t) return null;
+    return kpi === 'pmho' ? parseFloat2(t.cible_PMHO) : parseFloat2(t.cible_taux_PCA);
+  }
+
+  function buildSegmentDataset(labels, values, kpi) {
+    // Un dataset par point avec couleur selon dépassement cible
+    return values.map((v, i) => ({
+      x: labels[i],
+      y: v,
+      cible: targetForDate(labels[i], kpi),
+    }));
+  }
+
+  function colorForPoint(v, cible) {
+    if (v === null || cible === null || cible === 0) return 'rgba(139,143,168,0.7)';
+    if (v >= cible)      return '#22c55e';
+    if (v >= cible * 0.9) return '#f59e0b';
+    return '#ef4444';
+  }
+
+  function buildLineData(labels, values, kpi) {
+    const pts   = values.map((v, i) => ({ x: labels[i], y: v }));
+    const cibles = labels.map(d => ({ x: d, y: targetForDate(d, kpi) }));
+    return { pts, cibles };
+  }
+
+  function makeChart(canvasId, { pts, cibles }, labelMain, labelCible, fmtY) {
+    const ctx = document.getElementById(canvasId).getContext('2d');
+    const pointColors = pts.map((p, i) => colorForPoint(p.y, cibles[i]?.y ?? null));
+
+    return new Chart(ctx, {
+      type: 'line',
+      data: {
+        datasets: [
+          {
+            label: labelMain,
+            data: pts,
+            parsing: false,
+            borderColor: pointColors,
+            backgroundColor: 'transparent',
+            pointBackgroundColor: pointColors,
+            pointRadius: 3,
+            pointHoverRadius: 5,
+            borderWidth: 2,
+            tension: 0.3,
+            segment: {
+              borderColor: ctx2 => {
+                const i = ctx2.p0DataIndex;
+                return colorForPoint(pts[i]?.y, cibles[i]?.y ?? null);
+              },
+            },
+          },
+          {
+            label: labelCible,
+            data: cibles,
+            parsing: false,
+            borderColor: 'rgba(139,143,168,0.5)',
+            borderDash: [5, 4],
+            pointRadius: 0,
+            borderWidth: 1.5,
+            tension: 0,
+          },
+        ],
+      },
+      options: {
+        responsive: true,
+        animation: false,
+        interaction: { mode: 'index', intersect: false },
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            backgroundColor: '#1c1f26',
+            titleColor: '#8b8fa8',
+            bodyColor: '#f0f0f0',
+            callbacks: {
+              label: item => `${item.dataset.label}: ${fmtY(item.raw.y)}`,
+            },
+          },
+        },
+        scales: {
+          x: {
+            type: 'category',
+            ticks: {
+              color: '#8b8fa8',
+              maxTicksLimit: 6,
+              font: { size: 10 },
+            },
+            grid: { color: '#2a2d36' },
+          },
+          y: {
+            ticks: {
+              color: '#8b8fa8',
+              font: { size: 10 },
+              callback: v => fmtY(v),
+            },
+            grid: { color: '#2a2d36' },
+          },
+        },
+      },
+    });
+  }
+
+  const pmhoLineData = buildLineData(labels, pmhoVals, 'pmho');
+  const pcaLineData  = buildLineData(labels, pcaVals,  'pca');
+
+  if (chartPmho) chartPmho.destroy();
+  if (chartPca)  chartPca.destroy();
+
+  chartPmho = makeChart('chart-pmho', pmhoLineData, 'PMHO', 'Cible', v => v !== null ? v.toFixed(2) + ' €' : '—');
+  chartPca  = makeChart('chart-pca',  pcaLineData,  'Taux PCA', 'Cible', v => v !== null ? Math.round(v * 100) + '%' : '—');
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// Bootstrap principal
+// ═══════════════════════════════════════════════════════════════════
+
+const opId = new URLSearchParams(window.location.search).get('op') || '1';
+
+function showError(msg) {
+  document.getElementById('spinner').style.display = 'none';
+  const el = document.getElementById('error-msg');
+  el.textContent = msg;
+  el.style.display = 'block';
+}
+
+async function init() {
+  if (!CONFIG.OPERATORS[opId]) {
+    showError(`Opérateur inconnu : ?op=${opId}`);
+    return;
+  }
+
+  try {
+    // Lecture parallèle : data opérateur + flags + targets + data équipe
+    const [dataOp, flagsAll, targetsAll, dataTeam] = await Promise.all([
+      fetchSheet('data!A:H'),
+      fetchSheet('flags!A:P'),
+      fetchSheet('targets!A:G'),
+      fetchSheet('data!A:H'),
+    ]);
+
+    // "Aujourd'hui" = date la plus récente dans data pour cet opérateur
+    const opRows = dataOp.filter(r => r.operateur_id === opId);
+    opRows.sort((a, b) => b.date.localeCompare(a.date));
+    const todayStr   = opRows[0]?.date ?? '';
+    const todayData  = opRows[0] ?? null;
+
+    // Flag row du jour
+    const flagRow = flagsAll.find(r => r.operateur_id === opId && r.date === todayStr) ?? null;
+
+    // Target row du mois courant
+    const ym = todayStr.slice(0, 7);
+    const targetRow = targetsAll.find(r => r.operateur_id === opId && r.annee_mois === ym) ?? null;
+
+    // Historique pour onglet 2 (réutiliser dataOp + dataTeam)
+    histData    = dataTeam;
+    histTargets = targetsAll;
+
+    // Afficher
+    document.getElementById('spinner').style.display = 'none';
+    document.getElementById('tab-today').classList.add('active');
+
+    renderToday(todayData, flagRow, targetRow, dataTeam);
+
+  } catch (err) {
+    showError('Données indisponibles — ' + err.message);
+  }
+}
+
+// Service worker
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('service-worker.js').catch(() => {});
+}
+
+init();
+</script>
+</body>
+</html>

@@ -1,0 +1,14 @@
+{
+  "name": "MWPS Dashboard",
+  "short_name": "MWPS",
+  "description": "Mon WinPharma Stats — feedback quotidien opérateur",
+  "start_url": "/mwps/?op=1",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0f1117",
+  "theme_color": "#0f1117",
+  "icons": [
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png" }
+  ]
+}
