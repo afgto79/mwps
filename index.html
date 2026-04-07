@@ -4,11 +4,13 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
   <meta name="theme-color" content="#0f1117">
+  <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <title>MWPS Dashboard</title>
   <link rel="manifest" href="manifest.json">
   <link rel="apple-touch-icon" href="icon-192.png">
+  <link rel="icon" href="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7">
   <script src="config.js"></script>
   <style>
     /* ── Reset & base ──────────────────────────────────────────────────── */
@@ -331,6 +333,19 @@
 // Utilitaires Sheets
 // ═══════════════════════════════════════════════════════════════════
 
+// Convertit un numéro de série Excel en "YYYY-MM-DD" si nécessaire
+function normalizeDate(v) {
+  const n = Number(v);
+  if (!isNaN(n) && n > 40000) {
+    const d = new Date((n - 25569) * 86400 * 1000);
+    return d.toISOString().slice(0, 10);
+  }
+  return String(v);
+}
+
+// Champs date à normaliser par feuille
+const DATE_FIELDS = ['date'];
+
 async function fetchSheet(range) {
   const url = `https://sheets.googleapis.com/v4/spreadsheets/${CONFIG.SHEETS_ID}/values/${encodeURIComponent(range)}?key=${CONFIG.API_KEY}`;
   const resp = await fetch(url);
@@ -342,6 +357,8 @@ async function fetchSheet(range) {
   return rows.slice(1).map(row => {
     const obj = {};
     headers.forEach((h, i) => { obj[h] = row[i] ?? ''; });
+    // Normaliser tous les champs date (série Excel → ISO)
+    DATE_FIELDS.forEach(f => { if (f in obj) obj[f] = normalizeDate(obj[f]); });
     return obj;
   });
 }
