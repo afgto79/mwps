@@ -401,8 +401,9 @@ function fmtPct(v) {
 }
 function fmtDate(iso) {
   if (!iso) return '—';
-  const [y, m, d] = iso.split('-');
-  return `Données du ${parseInt(d)}/${parseInt(m)}`;
+  const parts = iso.split('-');
+  if (parts.length < 3) return iso;
+  return `Données du ${parts[2]}/${parts[1]}`;
 }
 
 // ═══════════════════════════════════════════════════════════════════
