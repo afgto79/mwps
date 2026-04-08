@@ -793,7 +793,7 @@ function renderTeam(teamData, todayStr, currentOpId, flagRow, targetRow) {
   const listEl   = document.getElementById('team-list');
   const todayOps = teamData.filter(r => r.date === todayStr);
 
-  const workers = todayOps.filter(r => parseInt2(r.nb_ventes_comptoir_j) > 0);
+  const workers = todayOps.filter(r => parseInt2(r.nb_ventes_comptoir_j) > 0 && CONFIG.OPERATORS[r.operateur_id]);
   if (workers.length <= 1) { section.style.display = 'none'; return; }
 
   const withTaux = workers.filter(r => parseFloat2(r.taux_acceptation) !== null);
