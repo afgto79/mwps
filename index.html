@@ -675,7 +675,6 @@ function renderHistory() {
   }
 
   function makeChart(canvasId, labels, mainVals, cibleVals, labelMain, labelCible, fmtY) {
-    console.log(`[${canvasId}] points: ${mainVals.length}, labels sample:`, labels.slice(0, 3));
     const ctx = document.getElementById(canvasId).getContext('2d');
     const pointColors = mainVals.map((v, i) => colorForPoint(v, cibleVals[i]));
 
@@ -769,6 +768,8 @@ if (!_urlOp) {
   const saved = localStorage.getItem('mwps_last_op');
   if (saved && CONFIG.OPERATORS[saved]) {
     window.location.replace('?op=' + saved);
+    // Arrêter l'exécution — la page va recharger
+    throw new Error('redirect');
   }
 }
 const opId = _urlOp || '1';
