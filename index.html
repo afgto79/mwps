@@ -3,41 +3,45 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
-  <meta name="theme-color" content="#0f1117">
+  <meta name="theme-color" content="#fdf6ee">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <title>MWPS Dashboard</title>
   <link rel="manifest" href="manifest.json">
   <link rel="apple-touch-icon" href="icon-192.png">
   <link rel="icon" href="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7">
+  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&family=Nunito+Sans:wght@400;600&display=swap" rel="stylesheet">
   <script src="config.js"></script>
   <style>
-    /* ── Reset & base ──────────────────────────────────────────────────── */
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
     :root {
-      --bg:       #0f1117;
-      --card:     #1c1f26;
-      --card2:    #252830;
-      --text:     #f0f0f0;
-      --muted:    #8b8fa8;
-      --green:    #22c55e;
-      --orange:   #f59e0b;
-      --red:      #ef4444;
-      --nav-h:    56px;
+      --bg:           #fdf6ee;
+      --card:         #ffffff;
+      --card-alt:     #fff8f0;
+      --border:       #f0e6d3;
+      --orange:       #ff6b35;
+      --orange-light: #fff0e8;
+      --yellow:       #fbbf24;
+      --green:        #22c55e;
+      --red:          #ef4444;
+      --text:         #1a1a2e;
+      --muted:        #9ca3af;
+      --shadow:       0 2px 12px rgba(255,107,53,0.08);
+      --nav-h:        56px;
     }
 
     html, body {
       height: 100%;
       background: var(--bg);
       color: var(--text);
-      font-family: system-ui, -apple-system, sans-serif;
+      font-family: 'Nunito Sans', system-ui, sans-serif;
       font-size: 15px;
       overflow: hidden;
     }
 
-    /* ── Layout ────────────────────────────────────────────────────────── */
+    /* ── Layout ────────────────────────────────────────────────────── */
     #app {
       display: flex;
       flex-direction: column;
@@ -48,19 +52,16 @@
 
     .tab-content {
       flex: 1;
-      overflow-y: auto;
-      padding: 12px 12px calc(var(--nav-h) + 12px);
+      padding: 14px 16px 0;
       display: none;
+      flex-direction: column;
+      min-height: 0;
     }
-    .tab-content.active { display: flex; flex-direction: column; }
+    .tab-content.active { display: flex; }
+    #tab-today   { overflow: hidden; }
+    #tab-history { overflow-y: auto; padding-bottom: calc(var(--nav-h) + 16px); }
 
-    /* Onglet Aujourd'hui : répartir l'espace sans scroll */
-    #tab-today { overflow-y: hidden; }
-    #tab-today .kpi-grid { flex-shrink: 0; }
-    #tab-today .badges   { flex-shrink: 0; }
-    #tab-today #team-section { flex: 1; overflow-y: auto; min-height: 0; }
-
-    /* ── Bottom nav ────────────────────────────────────────────────────── */
+    /* ── Navigation ────────────────────────────────────────────────── */
     nav {
       position: fixed;
       bottom: 0;
@@ -71,7 +72,8 @@
       height: var(--nav-h);
       background: var(--card);
       display: flex;
-      border-top: 1px solid #2a2d36;
+      border-top: 1px solid var(--border);
+      box-shadow: 0 -2px 12px rgba(0,0,0,0.06);
       z-index: 100;
     }
     nav button {
@@ -79,150 +81,17 @@
       background: none;
       border: none;
       color: var(--muted);
-      font-size: 13px;
+      font-family: 'Nunito Sans', sans-serif;
+      font-size: 0.75rem;
       font-weight: 600;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
       cursor: pointer;
       transition: color .15s;
-      letter-spacing: .03em;
     }
-    nav button.active { color: var(--text); border-top: 2px solid var(--green); }
+    nav button.active { color: var(--orange); border-top: 2px solid var(--orange); }
 
-    /* ── Cards ─────────────────────────────────────────────────────────── */
-    .card {
-      background: var(--card);
-      border-radius: 12px;
-      padding: 14px 16px;
-      margin-bottom: 10px;
-    }
-
-    /* ── Header opérateur ──────────────────────────────────────────────── */
-    .op-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 10px;
-      flex-shrink: 0;
-    }
-    .op-avatar {
-      width: 40px; height: 40px;
-      background: var(--card2);
-      border-radius: 50%;
-      display: flex; align-items: center; justify-content: center;
-      font-size: 14px; font-weight: 800;
-      flex-shrink: 0;
-    }
-    .op-date { font-size: 13px; color: var(--muted); }
-
-    /* ── KPI grid ──────────────────────────────────────────────────────── */
-    .kpi-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 10px;
-      margin-bottom: 10px;
-    }
-    .kpi-box {
-      background: var(--card2);
-      border-radius: 10px;
-      padding: 12px 14px;
-      border-left: 4px solid transparent;
-      transition: border-color .3s;
-    }
-    .kpi-box.sig-green  { border-left-color: var(--green); }
-    .kpi-box.sig-orange { border-left-color: var(--orange); }
-    .kpi-box.sig-red    { border-left-color: var(--red); }
-    .kpi-label {
-      font-size: 11px;
-      font-weight: 600;
-      letter-spacing: .06em;
-      color: var(--muted);
-      text-transform: uppercase;
-      margin-bottom: 4px;
-    }
-    .kpi-value {
-      font-size: 32px;
-      font-weight: 700;
-      line-height: 1.1;
-    }
-    .kpi-cible {
-      font-size: 11px;
-      color: var(--muted);
-      margin-top: 4px;
-    }
-    .kpi-delta {
-      font-size: 12px;
-      font-weight: 600;
-      margin-top: 5px;
-    }
-    .kpi-bar-track {
-      height: 3px;
-      background: #2a2d36;
-      border-radius: 2px;
-      margin-top: 8px;
-      overflow: hidden;
-    }
-    .kpi-bar {
-      height: 100%;
-      border-radius: 2px;
-      width: 0;
-      transition: width .4s ease;
-    }
-    .kpi-box.sig-green  .kpi-bar { background: var(--green); }
-    .kpi-box.sig-orange .kpi-bar { background: var(--orange); }
-    .kpi-box.sig-red    .kpi-bar { background: var(--red); }
-    .kpi-box.sig-none   .kpi-bar { background: var(--muted); }
-    .sig-green  { color: var(--green); }
-    .sig-orange { color: var(--orange); }
-    .sig-red    { color: var(--red); }
-    .sig-none   { color: var(--muted); }
-
-    /* ── Streak / propositions ─────────────────────────────────────────── */
-    .badges { display: flex; flex-direction: column; gap: 7px; margin-bottom: 10px; }
-    .badge-row {
-      background: var(--card2);
-      border-radius: 8px;
-      padding: 9px 14px;
-      font-size: 13px;
-      font-weight: 600;
-      border-left: 3px solid var(--muted);
-    }
-    .badge-row.badge-streak       { border-left-color: var(--orange); }
-    .badge-row.badge-vol-green    { border-left-color: var(--green); }
-    .badge-row.badge-vol-orange   { border-left-color: var(--orange); }
-    .badge-row.badge-vol-red      { border-left-color: var(--red); }
-
-    /* ── Classement équipe ─────────────────────────────────────────────── */
-    .team-title {
-      font-size: 11px;
-      font-weight: 700;
-      letter-spacing: .06em;
-      color: var(--muted);
-      text-transform: uppercase;
-      margin-bottom: 8px;
-    }
-    .team-row {
-      display: flex;
-      align-items: center;
-      padding: 6px 0;
-      border-bottom: 1px solid #2a2d36;
-      font-size: 13px;
-    }
-    .team-row:last-child { border-bottom: none; }
-    .team-rank { width: 22px; color: var(--muted); font-size: 12px; }
-    .team-op   { flex: 1; font-weight: 700; }
-    .team-val  { width: 40px; text-align: right; font-weight: 600; }
-    .team-bar-wrap {
-      width: 44px; height: 5px;
-      background: #2a2d36;
-      border-radius: 3px;
-      overflow: hidden;
-      margin-left: 8px;
-      align-self: center;
-      flex-shrink: 0;
-    }
-    .team-bar-fill { height: 100%; border-radius: 3px; }
-    .team-sig  { width: 18px; text-align: right; margin-left: 4px; font-size: 13px; }
-
-    /* ── Spinner ───────────────────────────────────────────────────────── */
+    /* ── Spinner ───────────────────────────────────────────────────── */
     #spinner {
       display: flex;
       flex-direction: column;
@@ -231,23 +100,263 @@
       height: 100%;
       gap: 14px;
       color: var(--muted);
-      font-size: 13px;
+      font-family: 'Nunito Sans', sans-serif;
+      font-size: 0.9rem;
     }
     .spin {
-      width: 32px; height: 32px;
-      border: 3px solid #2a2d36;
-      border-top-color: var(--green);
+      width: 36px; height: 36px;
+      border: 3px solid var(--border);
+      border-top-color: var(--orange);
       border-radius: 50%;
-      animation: spin .7s linear infinite;
+      animation: spin .8s linear infinite;
     }
     @keyframes spin { to { transform: rotate(360deg); } }
-    #error-msg { color: var(--red); font-size: 14px; text-align: center; padding: 20px; }
+    #error-msg {
+      color: var(--red);
+      font-family: 'Nunito', sans-serif;
+      font-size: 0.95rem;
+      text-align: center;
+      padding: 24px 20px;
+    }
 
-    /* ── Pop-up ────────────────────────────────────────────────────────── */
+    /* ── Header opérateur ──────────────────────────────────────────── */
+    .op-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+      flex-shrink: 0;
+    }
+    .op-avatar {
+      width: 40px; height: 40px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #ff6b35, #fbbf24);
+      display: flex; align-items: center; justify-content: center;
+      font-family: 'Nunito', sans-serif;
+      font-size: 0.95rem;
+      font-weight: 800;
+      color: #fff;
+      flex-shrink: 0;
+      box-shadow: 0 2px 8px rgba(255,107,53,0.35);
+    }
+    .op-date {
+      font-family: 'Nunito Sans', sans-serif;
+      font-size: 0.85rem;
+      color: var(--muted);
+    }
+
+    /* ── KPI Grid ──────────────────────────────────────────────────── */
+    .kpi-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-bottom: 9px;
+      flex-shrink: 0;
+    }
+    .kpi-card {
+      background: var(--card);
+      border-radius: 20px;
+      box-shadow: var(--shadow);
+      padding: 14px 14px 12px;
+      border: 1px solid var(--border);
+      animation: slideUp 400ms ease-out both;
+    }
+    .kpi-card:nth-child(2) { animation-delay: 80ms; }
+    @keyframes slideUp {
+      from { opacity: 0; transform: translateY(16px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    .kpi-label {
+      font-family: 'Nunito Sans', sans-serif;
+      font-size: 0.7rem;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 6px;
+    }
+    .kpi-value {
+      font-family: 'Nunito', sans-serif;
+      font-size: clamp(1.7rem, 5.5vw, 2.2rem);
+      font-weight: 900;
+      line-height: 1;
+      color: var(--text);
+      margin-bottom: 8px;
+    }
+    .kpi-gauge-track {
+      height: 8px;
+      background: var(--border);
+      border-radius: 4px;
+      overflow: hidden;
+      margin-bottom: 8px;
+    }
+    .kpi-gauge-fill {
+      height: 100%;
+      border-radius: 4px;
+      width: 0;
+      transition: width .6s ease-out;
+    }
+    .kpi-target {
+      font-family: 'Nunito Sans', sans-serif;
+      font-size: 0.78rem;
+      color: var(--muted);
+      margin-bottom: 5px;
+    }
+    .kpi-coaching {
+      font-family: 'Nunito', sans-serif;
+      font-size: 0.82rem;
+      font-weight: 600;
+      color: var(--text);
+      line-height: 1.35;
+    }
+
+    /* ── Propositions ──────────────────────────────────────────────── */
+    .prop-section {
+      background: var(--card-alt);
+      border-radius: 12px;
+      padding: 11px 14px 12px;
+      margin-bottom: 9px;
+      flex-shrink: 0;
+      border: 1px solid var(--border);
+    }
+    .prop-row {
+      display: flex;
+      align-items: center;
+      margin-bottom: 8px;
+    }
+    .prop-icon {
+      color: var(--orange);
+      font-size: 0.7rem;
+      margin-right: 8px;
+      flex-shrink: 0;
+    }
+    .prop-label {
+      font-family: 'Nunito Sans', sans-serif;
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: var(--text);
+      flex: 1;
+    }
+    .prop-count {
+      font-family: 'Nunito', sans-serif;
+      font-size: 0.95rem;
+      font-weight: 700;
+      color: var(--text);
+    }
+    .prop-track {
+      height: 6px;
+      background: var(--border);
+      border-radius: 3px;
+      overflow: hidden;
+    }
+    .prop-fill {
+      height: 100%;
+      border-radius: 3px;
+      width: 0;
+      transition: width .5s ease-out;
+    }
+
+    /* ── Streak pill ───────────────────────────────────────────────── */
+    .streak-pill {
+      background: rgba(251,191,36,0.15);
+      border: 1px solid rgba(251,191,36,0.4);
+      border-radius: 20px;
+      padding: 9px 16px;
+      margin-bottom: 9px;
+      font-family: 'Nunito', sans-serif;
+      font-size: 0.88rem;
+      font-weight: 700;
+      color: var(--text);
+      text-align: center;
+      flex-shrink: 0;
+    }
+    .streak-pulse { animation: pulse 1.5s ease-in-out infinite; }
+    @keyframes pulse {
+      0%, 100% { transform: scale(1); }
+      50%       { transform: scale(1.02); }
+    }
+
+    /* ── Classement équipe ─────────────────────────────────────────── */
+    .team-section {
+      flex: 1;
+      overflow-y: auto;
+      min-height: 0;
+      padding-bottom: calc(var(--nav-h) + 8px);
+    }
+    .team-card {
+      background: var(--card);
+      border-radius: 16px;
+      padding: 12px 14px;
+      border: 1px solid var(--border);
+      box-shadow: var(--shadow);
+    }
+    .team-title {
+      font-family: 'Nunito Sans', sans-serif;
+      font-size: 0.68rem;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 10px;
+    }
+    .team-row {
+      display: flex;
+      align-items: center;
+      padding: 6px 8px;
+      border-radius: 10px;
+      margin-bottom: 3px;
+      gap: 8px;
+    }
+    .team-row.team-self {
+      background: var(--orange-light);
+      border-left: 3px solid var(--orange);
+    }
+    .team-rank {
+      font-family: 'Nunito Sans', sans-serif;
+      font-size: 0.75rem;
+      color: var(--muted);
+      width: 18px;
+      flex-shrink: 0;
+    }
+    .team-avatar {
+      width: 28px; height: 28px;
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-family: 'Nunito', sans-serif;
+      font-size: 0.65rem;
+      font-weight: 800;
+      color: #fff;
+      flex-shrink: 0;
+    }
+    .team-bar-col { flex: 1; min-width: 0; }
+    .team-bar-track {
+      height: 6px;
+      background: var(--border);
+      border-radius: 3px;
+      overflow: hidden;
+    }
+    .team-bar-fill { height: 100%; border-radius: 3px; }
+    .team-val {
+      font-family: 'Nunito', sans-serif;
+      font-size: 0.82rem;
+      font-weight: 700;
+      width: 36px;
+      text-align: right;
+      flex-shrink: 0;
+    }
+    .team-emoji { font-size: 0.85rem; width: 18px; text-align: center; flex-shrink: 0; }
+
+    .sig-green  { color: var(--green); }
+    .sig-orange { color: var(--orange); }
+    .sig-red    { color: var(--red); }
+    .sig-none   { color: var(--muted); }
+
+    /* ── Pop-up ────────────────────────────────────────────────────── */
     #popup-overlay {
       display: none;
       position: fixed; inset: 0;
-      background: rgba(0,0,0,.72);
+      backdrop-filter: blur(6px);
+      background: rgba(253,246,238,0.85);
       z-index: 200;
       align-items: center;
       justify-content: center;
@@ -255,44 +364,66 @@
     #popup-overlay.show { display: flex; }
     #popup-card {
       background: var(--card);
-      border-radius: 16px;
-      padding: 28px 24px 20px;
-      max-width: 320px;
+      border-radius: 24px;
+      box-shadow: 0 8px 40px rgba(255,107,53,0.2);
+      border: 2px solid var(--orange);
+      max-width: 300px;
       width: 90%;
+      padding: 32px 24px;
       text-align: center;
-      animation: popIn .2s ease-out;
+      animation: popIn 300ms cubic-bezier(0.34,1.56,0.64,1) both;
     }
     @keyframes popIn {
-      from { transform: scale(.88); opacity: 0; }
+      from { transform: scale(0.8); opacity: 0; }
       to   { transform: scale(1);   opacity: 1; }
     }
-    #popup-icon  { font-size: 48px; margin-bottom: 10px; }
-    #popup-msg   { font-size: 17px; font-weight: 700; margin-bottom: 20px; line-height: 1.3; }
+    #popup-icon {
+      font-size: 3rem;
+      margin-bottom: 10px;
+    }
+    #popup-msg {
+      font-family: 'Nunito', sans-serif;
+      font-size: 1.25rem;
+      font-weight: 800;
+      color: var(--text);
+      margin-bottom: 6px;
+      line-height: 1.3;
+    }
+    #popup-sub {
+      font-family: 'Nunito Sans', sans-serif;
+      font-size: 0.9rem;
+      color: var(--muted);
+      margin-bottom: 24px;
+      min-height: 0;
+    }
     #popup-ok {
-      background: var(--green);
-      color: #000;
+      background: var(--orange);
+      color: #fff;
       border: none;
-      border-radius: 8px;
-      padding: 10px 32px;
-      font-size: 15px;
-      font-weight: 700;
+      border-radius: 12px;
+      padding: 12px;
+      width: 100%;
+      font-family: 'Nunito', sans-serif;
+      font-size: 1rem;
+      font-weight: 800;
       cursor: pointer;
     }
 
-    /* ── Historique ────────────────────────────────────────────────────── */
+    /* ── Historique ────────────────────────────────────────────────── */
     .chart-wrap {
       background: var(--card);
-      border-radius: 12px;
-      padding: 14px;
-      margin-bottom: 10px;
+      border-radius: 20px;
+      padding: 16px;
+      margin-bottom: 12px;
+      border: 1px solid var(--border);
+      box-shadow: var(--shadow);
     }
     .chart-title {
-      font-size: 12px;
+      font-family: 'Nunito', sans-serif;
+      font-size: 0.95rem;
       font-weight: 700;
-      letter-spacing: .05em;
-      color: var(--muted);
-      text-transform: uppercase;
-      margin-bottom: 10px;
+      color: var(--text);
+      margin-bottom: 12px;
     }
     canvas { display: block; width: 100% !important; }
   </style>
@@ -307,45 +438,52 @@
   </div>
   <div id="error-msg" style="display:none"></div>
 
-  <!-- ── Onglet 1 : Aujourd'hui ── -->
+  <!-- ── Onglet Aujourd'hui ── -->
   <div id="tab-today" class="tab-content">
 
-    <!-- En-tête opérateur -->
     <div class="op-header">
       <div class="op-avatar" id="op-name">—</div>
       <span class="op-date" id="op-date">—</span>
     </div>
 
-    <!-- KPIs PMHO / PCA -->
     <div class="kpi-grid">
-      <div class="kpi-box" id="kpi-pmho-box">
-        <div class="kpi-label">PMHO</div>
+      <div class="kpi-card" id="kpi-pmho-box">
+        <div class="kpi-label">💰 Panier moyen</div>
         <div class="kpi-value" id="kpi-pmho">—</div>
-        <div class="kpi-cible" id="kpi-pmho-cible"></div>
-        <div class="kpi-delta" id="kpi-pmho-delta"></div>
-        <div class="kpi-bar-track"><div class="kpi-bar" id="kpi-pmho-bar"></div></div>
+        <div class="kpi-gauge-track"><div class="kpi-gauge-fill" id="kpi-pmho-bar"></div></div>
+        <div class="kpi-target" id="kpi-pmho-cible"></div>
+        <div class="kpi-coaching" id="kpi-pmho-coaching"></div>
       </div>
-      <div class="kpi-box" id="kpi-pca-box">
-        <div class="kpi-label">PCA</div>
+      <div class="kpi-card" id="kpi-pca-box">
+        <div class="kpi-label">🤝 Conseils</div>
         <div class="kpi-value" id="kpi-pca">—</div>
-        <div class="kpi-cible" id="kpi-pca-cible"></div>
-        <div class="kpi-delta" id="kpi-pca-delta"></div>
-        <div class="kpi-bar-track"><div class="kpi-bar" id="kpi-pca-bar"></div></div>
+        <div class="kpi-gauge-track"><div class="kpi-gauge-fill" id="kpi-pca-bar"></div></div>
+        <div class="kpi-target" id="kpi-pca-cible"></div>
+        <div class="kpi-coaching" id="kpi-pca-coaching"></div>
       </div>
     </div>
 
-    <!-- Streak & propositions -->
-    <div class="badges" id="badges"></div>
+    <div class="prop-section" id="prop-section" style="display:none">
+      <div class="prop-row">
+        <span class="prop-icon">◆</span>
+        <span class="prop-label">Propositions</span>
+        <span class="prop-count" id="prop-count">—</span>
+      </div>
+      <div class="prop-track"><div class="prop-fill" id="prop-fill"></div></div>
+    </div>
 
-    <!-- Classement équipe -->
-    <div class="card" id="team-section" style="display:none">
-      <div class="team-title">EQUIPE — PCA aujourd'hui</div>
-      <div id="team-list"></div>
+    <div class="streak-pill" id="streak-pill" style="display:none"></div>
+
+    <div class="team-section" id="team-section" style="display:none">
+      <div class="team-card">
+        <div class="team-title">Équipe · Conseils du jour</div>
+        <div id="team-list"></div>
+      </div>
     </div>
 
   </div>
 
-  <!-- ── Onglet 2 : Historique ── -->
+  <!-- ── Onglet Historique ── -->
   <div id="tab-history" class="tab-content">
     <div class="chart-wrap">
       <div class="chart-title">PMHO — 365 jours</div>
@@ -359,8 +497,8 @@
 
   <!-- ── Navigation ── -->
   <nav>
-    <button id="nav-today"   class="active" onclick="switchTab('today')">AUJOURD'HUI</button>
-    <button id="nav-history"               onclick="switchTab('history')">HISTORIQUE</button>
+    <button id="nav-today" class="active" onclick="switchTab('today')">Aujourd'hui</button>
+    <button id="nav-history" onclick="switchTab('history')">Historique</button>
   </nav>
 </div>
 
@@ -369,17 +507,18 @@
   <div id="popup-card">
     <div id="popup-icon"></div>
     <div id="popup-msg"></div>
-    <button id="popup-ok" onclick="closePopup()">OK</button>
+    <div id="popup-sub"></div>
+    <button id="popup-ok" onclick="closePopup()">Super !</button>
   </div>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.2/dist/confetti.browser.min.js"></script>
 <script>
 // ═══════════════════════════════════════════════════════════════════
 // Utilitaires Sheets
 // ═══════════════════════════════════════════════════════════════════
 
-// Convertit un numéro de série Excel en "YYYY-MM-DD" si nécessaire
 function normalizeDate(v) {
   const n = Number(v);
   if (!isNaN(n) && n > 40000) {
@@ -389,7 +528,6 @@ function normalizeDate(v) {
   return String(v);
 }
 
-// Champs date à normaliser par feuille
 const DATE_FIELDS = ['date'];
 
 async function fetchSheet(range) {
@@ -403,7 +541,6 @@ async function fetchSheet(range) {
   return rows.slice(1).map(row => {
     const obj = {};
     headers.forEach((h, i) => { obj[h] = row[i] ?? ''; });
-    // Normaliser tous les champs date (série Excel → ISO)
     DATE_FIELDS.forEach(f => { if (f in obj) obj[f] = normalizeDate(obj[f]); });
     return obj;
   });
@@ -436,18 +573,28 @@ function switchTab(name) {
 }
 
 // ═══════════════════════════════════════════════════════════════════
-// Couleur signal
+// Signal
 // ═══════════════════════════════════════════════════════════════════
 
 function sigClass(value, cible) {
   if (value === null || cible === null || cible === 0) return 'sig-none';
   const ratio = value / cible;
-  if (ratio >= 1)          return 'sig-green';
-  if (ratio >= 0.9)        return 'sig-orange';
+  if (ratio >= 1)   return 'sig-green';
+  if (ratio >= 0.9) return 'sig-orange';
   return 'sig-red';
 }
+
 function sigEmoji(cls) {
-  return { 'sig-green': '🟢', 'sig-orange': '🟡', 'sig-red': '🔴', 'sig-none': '' }[cls];
+  return { 'sig-green': '🟢', 'sig-orange': '🟠', 'sig-red': '🔴', 'sig-none': '⚫' }[cls] ?? '';
+}
+
+// Couleur jauge : seuil 5% (plus fin que sigClass)
+function gaugeColor(value, cible) {
+  if (value === null || cible === null || cible === 0) return 'var(--muted)';
+  const ratio = value / cible;
+  if (ratio >= 1)    return 'var(--green)';
+  if (ratio >= 0.95) return 'var(--orange)';
+  return 'var(--red)';
 }
 
 // ═══════════════════════════════════════════════════════════════════
@@ -466,7 +613,65 @@ function fmtDate(iso) {
   if (!iso) return '—';
   const parts = iso.split('-');
   if (parts.length < 3) return iso;
-  return `Données du ${parts[2]}/${parts[1]}`;
+  const yesterday = new Date();
+  yesterday.setDate(yesterday.getDate() - 1);
+  if (iso === yesterday.toISOString().slice(0, 10)) return `Hier, ${parts[2]}/${parts[1]} 🌅`;
+  return `Le ${parts[2]}/${parts[1]}`;
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// Messages coaching
+// ═══════════════════════════════════════════════════════════════════
+
+function coachingPMHO(pmho, cible) {
+  if (pmho === null) return 'Pas de vente comptoir ce jour.';
+  if (cible === null || cible === 0) return '';
+  const ratio = pmho / cible;
+  if (ratio >= 1) return '🟢 Bien joué, objectif atteint !';
+  const manque = (cible - pmho).toFixed(2).replace('.', ',');
+  const gap = (1 - ratio) * 100;
+  if (gap < 5)  return `🟠 Tout proche ! Plus que ${manque}€ à faire.`;
+  if (gap < 15) return `🟠 Il te manque ${manque}€ — tu peux y arriver.`;
+  return '🔴 Journée difficile. Demain c\'est reparti !';
+}
+
+function coachingPCA(taux, cible) {
+  if (taux === null) return 'Aucune proposition enregistrée.';
+  if (cible === null || cible === 0) return '';
+  const ratio = taux / cible;
+  if (ratio >= 1) return '🟢 Objectif atteint !';
+  const pct = Math.round((cible - taux) * 100);
+  const gap = (1 - ratio) * 100;
+  if (gap < 5)  return `🟠 Presque ! ${pct}% de marge.`;
+  if (gap < 15) return `🟠 ${pct}% sous la cible. Propose à chaque passage.`;
+  return '🔴 Pense à proposer systématiquement.';
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// Confettis + couleurs opérateurs
+// ═══════════════════════════════════════════════════════════════════
+
+const OP_COLORS = {
+  '1': '#ff6b35', '2': '#3b82f6', '7': '#22c55e', '8': '#8b5cf6', '9': '#f59e0b',
+};
+
+function maybeConfetti(flagRow, todayStr) {
+  if (!flagRow || !todayStr) return;
+  const key = `mwps_confetti_${opId}_${todayStr}`;
+  if (localStorage.getItem(key)) return;
+  const isRecord  = flagRow.record_PMHO === 'True' || flagRow.record_taux_PCA === 'True';
+  const isStreak7 = parseInt2(flagRow.streak_PCA) >= 7;
+  if (isRecord || isStreak7) {
+    localStorage.setItem(key, '1');
+    if (typeof confetti === 'function') {
+      confetti({
+        particleCount: 120,
+        spread: 70,
+        origin: { y: 0.4 },
+        colors: ['#ff6b35', '#fbbf24', '#22c55e', '#ffffff'],
+      });
+    }
+  }
 }
 
 // ═══════════════════════════════════════════════════════════════════
@@ -474,24 +679,24 @@ function fmtDate(iso) {
 // ═══════════════════════════════════════════════════════════════════
 
 const POPUP_RULES = [
-  { flag: r => r.record_PMHO === 'True',                   icon: '🏆', msg: 'Record perso PMHO !' },
-  { flag: r => r.record_taux_PCA === 'True',               icon: '🏆', msg: 'Record perso PCA !' },
-  { flag: r => parseInt2(r.streak_PCA) >= 7,               icon: '🔥', msg: '7 jours de suite au-dessus de la cible !' },
-  { flag: r => parseInt2(r.streak_PCA) >= 3,               icon: '🔥', msg: '3 jours consécutifs !' },
-  { flag: r => r.best_team_PCA === 'True',                  icon: '⭐', msg: 'Meilleur taux équipe aujourd\'hui !' },
-  { flag: r => r.progression_PCA === 'True',               icon: '📈', msg: 'PCA en progression cette semaine !' },
-  { flag: r => r.objectif_volume_atteint === 'True',       icon: '💼', msg: 'Objectif volume de propositions atteint !' },
-  { flag: r => r.objectif_mensuel_PCA_atteint === 'True',  icon: '✅', msg: 'Objectif mensuel PCA atteint !' },
+  { flag: r => r.record_PMHO === 'True',                  icon: '🏆', msg: 'Record perso PMHO !' },
+  { flag: r => r.record_taux_PCA === 'True',              icon: '🏆', msg: 'Record perso PCA !' },
+  { flag: r => parseInt2(r.streak_PCA) >= 7,              icon: '🔥', msg: '7 jours de suite au-dessus de la cible !' },
+  { flag: r => parseInt2(r.streak_PCA) >= 3,              icon: '🔥', msg: '3 jours consécutifs !' },
+  { flag: r => r.best_team_PCA === 'True',                icon: '⭐', msg: 'Meilleur taux équipe aujourd\'hui !' },
+  { flag: r => r.progression_PCA === 'True',              icon: '📈', msg: 'PCA en progression cette semaine !' },
+  { flag: r => r.objectif_volume_atteint === 'True',      icon: '💼', msg: 'Objectif volume de propositions atteint !' },
+  { flag: r => r.objectif_mensuel_PCA_atteint === 'True', icon: '✅', msg: 'Objectif mensuel PCA atteint !' },
 ];
 
 function maybeShowPopup(flagRow, todayStr) {
   const key = `mwps_popup_${opId}_${todayStr}`;
   if (localStorage.getItem(key)) return;
-
   for (const rule of POPUP_RULES) {
     if (flagRow && rule.flag(flagRow)) {
       document.getElementById('popup-icon').textContent = rule.icon;
       document.getElementById('popup-msg').textContent  = rule.msg;
+      document.getElementById('popup-sub').textContent  = '';
       document.getElementById('popup-overlay').classList.add('show');
       localStorage.setItem(key, '1');
       return;
@@ -517,101 +722,94 @@ function renderToday(todayData, flagRow, targetRow, teamData) {
   // ── PMHO ──
   const pmho      = parseFloat2(todayData?.PMHO);
   const ciblePmho = parseFloat2(targetRow?.cible_PMHO);
-  const pmhoCls   = sigClass(pmho, ciblePmho);
 
-  const pmhoEl = document.getElementById('kpi-pmho');
-  pmhoEl.textContent = fmtPMHO(pmho);
-  pmhoEl.className = `kpi-value ${pmhoCls}`;
-  document.getElementById('kpi-pmho-box').className = `kpi-box ${pmhoCls}`;
-  document.getElementById('kpi-pmho-bar').style.width =
-    (pmho !== null && ciblePmho !== null && ciblePmho > 0)
-      ? Math.min(100, pmho / ciblePmho * 100) + '%' : '0%';
-
+  document.getElementById('kpi-pmho').textContent = fmtPMHO(pmho);
+  const pmhoBar = document.getElementById('kpi-pmho-bar');
+  pmhoBar.style.width = (pmho !== null && ciblePmho !== null && ciblePmho > 0)
+    ? Math.min(100, pmho / ciblePmho * 100) + '%' : '0%';
+  pmhoBar.style.background = gaugeColor(pmho, ciblePmho);
   document.getElementById('kpi-pmho-cible').textContent =
     ciblePmho !== null ? `Cible ${fmtPMHO(ciblePmho)}` : '';
-
-  const pmhoDeltaEl = document.getElementById('kpi-pmho-delta');
-  if (pmho !== null && ciblePmho !== null) {
-    const delta = pmho - ciblePmho;
-    pmhoDeltaEl.textContent = `${sigEmoji(pmhoCls)} ${delta >= 0 ? '+' : ''}${delta.toFixed(2).replace('.', ',')} €`;
-    pmhoDeltaEl.className = `kpi-delta ${pmhoCls}`;
-  } else {
-    pmhoDeltaEl.textContent = '';
-  }
+  document.getElementById('kpi-pmho-coaching').textContent = coachingPMHO(pmho, ciblePmho);
 
   // ── PCA ──
-  const taux      = parseFloat2(todayData?.taux_acceptation);
-  const ciblePca  = parseFloat2(targetRow?.cible_taux_PCA);
-  const pcaCls    = sigClass(taux, ciblePca);
+  const taux     = parseFloat2(todayData?.taux_acceptation);
+  const ciblePca = parseFloat2(targetRow?.cible_taux_PCA);
 
-  const pcaEl = document.getElementById('kpi-pca');
-  pcaEl.textContent = fmtPct(taux);
-  pcaEl.className = `kpi-value ${pcaCls}`;
-  document.getElementById('kpi-pca-box').className = `kpi-box ${pcaCls}`;
-  document.getElementById('kpi-pca-bar').style.width =
-    (taux !== null && ciblePca !== null && ciblePca > 0)
-      ? Math.min(100, taux / ciblePca * 100) + '%' : '0%';
-
+  document.getElementById('kpi-pca').textContent = fmtPct(taux);
+  const pcaBar = document.getElementById('kpi-pca-bar');
+  pcaBar.style.width = (taux !== null && ciblePca !== null && ciblePca > 0)
+    ? Math.min(100, taux / ciblePca * 100) + '%' : '0%';
+  pcaBar.style.background = gaugeColor(taux, ciblePca);
   document.getElementById('kpi-pca-cible').textContent =
     ciblePca !== null ? `Cible ${fmtPct(ciblePca)}` : '';
+  document.getElementById('kpi-pca-coaching').textContent = coachingPCA(taux, ciblePca);
 
-  const pcaDeltaEl = document.getElementById('kpi-pca-delta');
-  if (taux !== null && ciblePca !== null) {
-    const same = Math.abs(taux - ciblePca) < 0.005;
-    pcaDeltaEl.textContent = `${sigEmoji(pcaCls)} ${same ? '=' : (taux >= ciblePca ? '+' : '') + Math.round((taux - ciblePca) * 100) + ' pts'}`;
-    pcaDeltaEl.className = `kpi-delta ${pcaCls}`;
-  } else {
-    pcaDeltaEl.textContent = '';
-  }
-
-  // ── Badges streak / propositions ──
-  const badgesEl  = document.getElementById('badges');
-  const fragments = [];
-
-  const streakPca = parseInt2(flagRow?.streak_PCA);
-  if (streakPca && streakPca > 0) {
-    const icon = streakPca >= 3 ? '🔥' : '✨';
-    fragments.push(`<div class="badge-row badge-streak">${icon} Streak PCA : ${streakPca} jour${streakPca > 1 ? 's' : ''}</div>`);
-  }
-
-  const nbPca = parseInt2(todayData?.nb_PCA) ?? 0;
-  const nbPcr = parseInt2(todayData?.nb_PCR) ?? 0;
-  const volJ  = nbPca + nbPcr;
+  // ── Propositions ──
+  const nbPca    = parseInt2(todayData?.nb_PCA) ?? 0;
+  const nbPcr    = parseInt2(todayData?.nb_PCR) ?? 0;
+  const volJ     = nbPca + nbPcr;
   const cibleVol = parseInt2(targetRow?.cible_nb_propositions_j);
-  if (cibleVol !== null && cibleVol > 0) {
-    const volCls = volJ >= cibleVol ? 'sig-green' : (volJ >= cibleVol * 0.9 ? 'sig-orange' : 'sig-red');
-    const volBadgeCls = volCls.replace('sig-', 'badge-vol-');
-    fragments.push(`<div class="badge-row ${volBadgeCls}">💼 Propositions : <span class="${volCls}">${volJ}/${cibleVol}</span></div>`);
-  } else if (volJ > 0) {
-    fragments.push(`<div class="badge-row">💼 Propositions : ${volJ}</div>`);
+  const propEl   = document.getElementById('prop-section');
+
+  if (volJ > 0 || (cibleVol !== null && cibleVol > 0)) {
+    const propPct   = (cibleVol > 0) ? Math.min(100, volJ / cibleVol * 100) : 0;
+    const propColor = (cibleVol !== null && cibleVol > 0 && volJ >= cibleVol)
+      ? 'var(--green)' : 'var(--orange)';
+    document.getElementById('prop-count').textContent =
+      (cibleVol !== null && cibleVol > 0) ? `${volJ} / ${cibleVol}` : `${volJ}`;
+    const fill = document.getElementById('prop-fill');
+    fill.style.width      = propPct + '%';
+    fill.style.background = propColor;
+    propEl.style.display  = 'block';
+  } else {
+    propEl.style.display = 'none';
   }
 
-  badgesEl.innerHTML = fragments.join('');
+  // ── Streak ──
+  const streakPca  = parseInt2(flagRow?.streak_PCA)  ?? 0;
+  const streakPmho = parseInt2(flagRow?.streak_PMHO) ?? 0;
+  const streak     = streakPca > 0 ? streakPca : streakPmho;
+  const streakEl   = document.getElementById('streak-pill');
+  if (streak > 0) {
+    const icon = streak >= 3 ? '🔥' : '✨';
+    streakEl.textContent = `${icon} ${streak} jour${streak > 1 ? 's' : ''} de suite au-dessus de la cible !`;
+    streakEl.className   = 'streak-pill' + (streak >= 7 ? ' streak-pulse' : '');
+    streakEl.style.display = 'block';
+  } else {
+    streakEl.style.display = 'none';
+  }
 
-  // ── Classement équipe ──
-  renderTeam(teamData, todayStr, opId, flagRow);
+  // ── Équipe ──
+  renderTeam(teamData, todayStr, opId, flagRow, targetRow);
 
-  // ── Pop-up ──
+  // ── Pop-up + confettis ──
   maybeShowPopup(flagRow, todayStr);
+  maybeConfetti(flagRow, todayStr);
 }
 
-function renderTeam(teamData, todayStr, currentOpId, flagRow) {
+function renderTeam(teamData, todayStr, currentOpId, flagRow, targetRow) {
   const section  = document.getElementById('team-section');
   const listEl   = document.getElementById('team-list');
   const todayOps = teamData.filter(r => r.date === todayStr);
 
-  const workers  = todayOps.filter(r => parseInt2(r.nb_ventes_comptoir_j) > 0);
+  const workers = todayOps.filter(r => parseInt2(r.nb_ventes_comptoir_j) > 0);
   if (workers.length <= 1) { section.style.display = 'none'; return; }
 
   const withTaux = workers.filter(r => parseFloat2(r.taux_acceptation) !== null);
   const noTaux   = workers.filter(r => parseFloat2(r.taux_acceptation) === null);
-
   withTaux.sort((a, b) => parseFloat2(b.taux_acceptation) - parseFloat2(a.taux_acceptation));
   const sorted = [...withTaux, ...noTaux];
 
-  const ciblePca = parseFloat2(flagRow?.cible_j_PCA);
+  // Cible équipe : cible journalière (flagRow) ou mensuelle (targetRow) en fallback
+  const ciblePca = parseFloat2(flagRow?.cible_j_PCA) ?? parseFloat2(targetRow?.cible_taux_PCA);
 
-  const BAR_COLORS = { 'sig-green': '#22c55e', 'sig-orange': '#f59e0b', 'sig-red': '#ef4444', 'sig-none': '#8b8fa8' };
+  const BAR_FILL = {
+    'sig-green':  'var(--green)',
+    'sig-orange': 'var(--orange)',
+    'sig-red':    'var(--red)',
+    'sig-none':   'var(--border)',
+  };
 
   let html = '';
   sorted.forEach((row, i) => {
@@ -620,13 +818,18 @@ function renderTeam(teamData, todayStr, currentOpId, flagRow) {
     const cls     = taux !== null ? sigClass(taux, ciblePca) : 'sig-none';
     const isSelf  = row.operateur_id === currentOpId;
     const barW    = taux !== null ? Math.round(taux * 100) : 0;
-    const barCol  = BAR_COLORS[cls];
-    html += `<div class="team-row${isSelf ? '" style="font-weight:800' : ''}">
+    const opColor = OP_COLORS[row.operateur_id] || 'var(--muted)';
+    const emoji   = sigEmoji(taux !== null ? cls : 'sig-none');
+    html += `<div class="team-row${isSelf ? ' team-self' : ''}">
       <span class="team-rank">${i + 1}.</span>
-      <span class="team-op">${opInit}</span>
+      <span class="team-avatar" style="background:${opColor}">${opInit}</span>
+      <div class="team-bar-col">
+        <div class="team-bar-track">
+          <div class="team-bar-fill" style="width:${barW}%;background:${BAR_FILL[cls]}"></div>
+        </div>
+      </div>
       <span class="team-val ${cls}">${fmtPct(taux)}</span>
-      <span class="team-bar-wrap"><span class="team-bar-fill" style="width:${barW}%;background:${barCol}"></span></span>
-      <span class="team-sig">${sigEmoji(cls)}</span>
+      <span class="team-emoji">${emoji}</span>
     </div>`;
   });
 
@@ -646,19 +849,18 @@ let chartPca    = null;
 function renderHistory() {
   if (!histData) return;
 
-  const cutoff  = new Date();
+  const cutoff = new Date();
   cutoff.setDate(cutoff.getDate() - 365);
-  const cutStr  = cutoff.toISOString().slice(0, 10);
+  const cutStr = cutoff.toISOString().slice(0, 10);
 
   const rows = histData
     .filter(r => r.operateur_id === opId && r.date >= cutStr && parseInt2(r.nb_ventes_comptoir_j) > 0)
     .sort((a, b) => a.date.localeCompare(b.date));
 
-  const labels  = rows.map(r => r.date);
+  const labels   = rows.map(r => r.date);
   const pmhoVals = rows.map(r => parseFloat2(r.PMHO));
   const pcaVals  = rows.map(r => parseFloat2(r.taux_acceptation));
 
-  // Construire la cible glissante par date (lire depuis targets par mois)
   function targetForDate(dateStr, kpi) {
     if (!histTargets) return null;
     const ym = dateStr.slice(0, 7);
@@ -668,14 +870,14 @@ function renderHistory() {
   }
 
   function colorForPoint(v, cible) {
-    if (v === null || cible === null || cible === 0) return 'rgba(139,143,168,0.7)';
-    if (v >= cible)        return '#22c55e';
-    if (v >= cible * 0.9)  return '#f59e0b';
+    if (v === null || cible === null || cible === 0) return 'rgba(156,163,175,0.6)';
+    if (v >= cible)       return '#22c55e';
+    if (v >= cible * 0.9) return '#ff6b35';
     return '#ef4444';
   }
 
   function makeChart(canvasId, labels, mainVals, cibleVals, labelMain, labelCible, fmtY) {
-    const ctx = document.getElementById(canvasId).getContext('2d');
+    const ctx         = document.getElementById(canvasId).getContext('2d');
     const pointColors = mainVals.map((v, i) => colorForPoint(v, cibleVals[i]));
 
     return new Chart(ctx, {
@@ -686,7 +888,7 @@ function renderHistory() {
           {
             label: labelMain,
             data: mainVals,
-            borderColor: pointColors,
+            borderColor: '#ff6b35',
             backgroundColor: 'transparent',
             pointBackgroundColor: pointColors,
             pointRadius: 2,
@@ -701,8 +903,8 @@ function renderHistory() {
           {
             label: labelCible,
             data: cibleVals,
-            borderColor: 'rgba(139,143,168,0.5)',
-            borderDash: [5, 4],
+            borderColor: '#fbbf24',
+            borderDash: [6, 4],
             pointRadius: 0,
             borderWidth: 1.5,
             tension: 0,
@@ -717,9 +919,13 @@ function renderHistory() {
         plugins: {
           legend: { display: false },
           tooltip: {
-            backgroundColor: '#1c1f26',
-            titleColor: '#8b8fa8',
-            bodyColor: '#f0f0f0',
+            backgroundColor: '#ffffff',
+            borderColor: '#f0e6d3',
+            borderWidth: 1,
+            titleColor: '#9ca3af',
+            bodyColor: '#1a1a2e',
+            titleFont: { family: 'Nunito Sans', size: 11 },
+            bodyFont:  { family: 'Nunito Sans', size: 12 },
             callbacks: {
               label: item => `${item.dataset.label}: ${fmtY(item.raw)}`,
             },
@@ -729,20 +935,20 @@ function renderHistory() {
           x: {
             type: 'category',
             ticks: {
-              color: '#8b8fa8',
+              color: '#9ca3af',
               maxTicksLimit: 8,
-              font: { size: 10 },
+              font: { size: 10, family: 'Nunito Sans' },
               maxRotation: 0,
             },
-            grid: { color: '#2a2d36' },
+            grid: { color: '#f0e6d3' },
           },
           y: {
             ticks: {
-              color: '#8b8fa8',
-              font: { size: 10 },
+              color: '#9ca3af',
+              font: { size: 10, family: 'Nunito Sans' },
               callback: v => fmtY(v),
             },
-            grid: { color: '#2a2d36' },
+            grid: { color: '#f0e6d3' },
           },
         },
       },
@@ -755,8 +961,8 @@ function renderHistory() {
   if (chartPmho) chartPmho.destroy();
   if (chartPca)  chartPca.destroy();
 
-  chartPmho = makeChart('chart-pmho', labels, pmhoVals, pmhoCibles, 'PMHO',    'Cible', v => v !== null ? v.toFixed(2) + ' €' : '—');
-  chartPca  = makeChart('chart-pca',  labels, pcaVals,  pcaCibles,  'Taux PCA','Cible', v => v !== null ? Math.round(v * 100) + '%' : '—');
+  chartPmho = makeChart('chart-pmho', labels, pmhoVals, pmhoCibles, 'PMHO',     'Cible', v => v !== null ? v.toFixed(2) + ' €' : '—');
+  chartPca  = makeChart('chart-pca',  labels, pcaVals,  pcaCibles,  'Taux PCA', 'Cible', v => v !== null ? Math.round(v * 100) + '%' : '—');
 }
 
 // ═══════════════════════════════════════════════════════════════════
@@ -768,7 +974,6 @@ if (!_urlOp) {
   const saved = localStorage.getItem('mwps_last_op');
   if (saved && CONFIG.OPERATORS[saved]) {
     window.location.replace('?op=' + saved);
-    // Arrêter l'exécution — la page va recharger
     throw new Error('redirect');
   }
 }
@@ -788,26 +993,22 @@ async function init() {
   }
 
   try {
-    // Lecture parallèle : data (une seule fois) + flags + targets
     const [dataAll, flagsAll, targetsAll] = await Promise.all([
       fetchSheet('data!A:H'),
       fetchSheet('flags!A:P'),
       fetchSheet('targets!A:G'),
     ]);
 
-    // Dernier jour travaillé = date la plus récente où nb_ventes_comptoir_j > 0
     const opRows = dataAll
       .filter(r => r.operateur_id === opId && parseInt2(r.nb_ventes_comptoir_j) > 0);
     opRows.sort((a, b) => b.date.localeCompare(a.date));
-    const todayStr   = opRows[0]?.date ?? '';
-    const todayData  = opRows[0] ?? null;
+    const todayStr  = opRows[0]?.date ?? '';
+    const todayData = opRows[0] ?? null;
 
-    // Flag row : ligne la plus récente pour cet opérateur (indépendant de todayStr)
     const opFlags = flagsAll.filter(r => r.operateur_id === opId);
     opFlags.sort((a, b) => b.date.localeCompare(a.date));
     const flagRow = opFlags.filter(r => r.date === todayStr)[0] ?? opFlags[0] ?? null;
 
-    // Normalisation annee_mois : numéro de série Excel → "YYYY-MM"
     function excelSerialToYearMonth(serial) {
       const d = new Date((serial - 25569) * 86400 * 1000);
       const y = d.getUTCFullYear();
@@ -817,28 +1018,25 @@ async function init() {
     function normalizeYearMonth(v) {
       const n = Number(v);
       if (!isNaN(n) && n > 40000) return excelSerialToYearMonth(n);
-      return v; // déjà une string "YYYY-MM"
+      return v;
     }
     targetsAll.forEach(r => {
-      r.annee_mois             = normalizeYearMonth(r.annee_mois);
-      r.cible_PMHO             = parseFloat(String(r.cible_PMHO).replace(',', '.'));
-      r.cible_taux_PCA         = parseFloat(String(r.cible_taux_PCA).replace(',', '.'));
+      r.annee_mois              = normalizeYearMonth(r.annee_mois);
+      r.cible_PMHO              = parseFloat(String(r.cible_PMHO).replace(',', '.'));
+      r.cible_taux_PCA          = parseFloat(String(r.cible_taux_PCA).replace(',', '.'));
       r.cible_nb_propositions_j = parseInt(r.cible_nb_propositions_j);
     });
 
-    // Target row du mois courant
-    const ym = todayStr.slice(0, 7);
-    const targetRow = targetsAll.find(r => String(r.operateur_id) === String(opId) && r.annee_mois === ym) ?? null;
-    console.log('[debug] cible_taux_PCA brut:', targetRow?.cible_taux_PCA, typeof targetRow?.cible_taux_PCA);
+    const ym        = todayStr.slice(0, 7);
+    const targetRow = targetsAll.find(
+      r => String(r.operateur_id) === String(opId) && r.annee_mois === ym
+    ) ?? null;
 
-    // Historique pour onglet 2
     histData    = dataAll;
     histTargets = targetsAll;
 
-    // Persister l'opérateur courant
     localStorage.setItem('mwps_last_op', opId);
 
-    // Afficher
     document.getElementById('spinner').style.display = 'none';
     document.getElementById('tab-today').classList.add('active');
 
@@ -849,7 +1047,6 @@ async function init() {
   }
 }
 
-// Service worker
 if ('serviceWorker' in navigator) {
   navigator.serviceWorker.register('service-worker.js').catch(() => {});
 }
