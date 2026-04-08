@@ -101,10 +101,17 @@
       justify-content: space-between;
       align-items: center;
       margin-bottom: 10px;
+      flex-shrink: 0;
     }
-    .op-name { font-size: 22px; font-weight: 700; }
+    .op-avatar {
+      width: 40px; height: 40px;
+      background: var(--card2);
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 14px; font-weight: 800;
+      flex-shrink: 0;
+    }
     .op-date { font-size: 13px; color: var(--muted); }
-    .op-header { flex-shrink: 0; }
 
     /* ── KPI grid ──────────────────────────────────────────────────────── */
     .kpi-grid {
@@ -117,7 +124,12 @@
       background: var(--card2);
       border-radius: 10px;
       padding: 12px 14px;
+      border-left: 4px solid transparent;
+      transition: border-color .3s;
     }
+    .kpi-box.sig-green  { border-left-color: var(--green); }
+    .kpi-box.sig-orange { border-left-color: var(--orange); }
+    .kpi-box.sig-red    { border-left-color: var(--red); }
     .kpi-label {
       font-size: 11px;
       font-weight: 600;
@@ -127,7 +139,7 @@
       margin-bottom: 4px;
     }
     .kpi-value {
-      font-size: 26px;
+      font-size: 32px;
       font-weight: 700;
       line-height: 1.1;
     }
@@ -141,6 +153,23 @@
       font-weight: 600;
       margin-top: 5px;
     }
+    .kpi-bar-track {
+      height: 3px;
+      background: #2a2d36;
+      border-radius: 2px;
+      margin-top: 8px;
+      overflow: hidden;
+    }
+    .kpi-bar {
+      height: 100%;
+      border-radius: 2px;
+      width: 0;
+      transition: width .4s ease;
+    }
+    .kpi-box.sig-green  .kpi-bar { background: var(--green); }
+    .kpi-box.sig-orange .kpi-bar { background: var(--orange); }
+    .kpi-box.sig-red    .kpi-bar { background: var(--red); }
+    .kpi-box.sig-none   .kpi-bar { background: var(--muted); }
     .sig-green  { color: var(--green); }
     .sig-orange { color: var(--orange); }
     .sig-red    { color: var(--red); }
@@ -154,7 +183,12 @@
       padding: 9px 14px;
       font-size: 13px;
       font-weight: 600;
+      border-left: 3px solid var(--muted);
     }
+    .badge-row.badge-streak       { border-left-color: var(--orange); }
+    .badge-row.badge-vol-green    { border-left-color: var(--green); }
+    .badge-row.badge-vol-orange   { border-left-color: var(--orange); }
+    .badge-row.badge-vol-red      { border-left-color: var(--red); }
 
     /* ── Classement équipe ─────────────────────────────────────────────── */
     .team-title {
@@ -175,8 +209,18 @@
     .team-row:last-child { border-bottom: none; }
     .team-rank { width: 22px; color: var(--muted); font-size: 12px; }
     .team-op   { flex: 1; font-weight: 700; }
-    .team-val  { width: 48px; text-align: right; font-weight: 600; }
-    .team-sig  { width: 20px; text-align: right; margin-left: 6px; font-size: 14px; }
+    .team-val  { width: 40px; text-align: right; font-weight: 600; }
+    .team-bar-wrap {
+      width: 44px; height: 5px;
+      background: #2a2d36;
+      border-radius: 3px;
+      overflow: hidden;
+      margin-left: 8px;
+      align-self: center;
+      flex-shrink: 0;
+    }
+    .team-bar-fill { height: 100%; border-radius: 3px; }
+    .team-sig  { width: 18px; text-align: right; margin-left: 4px; font-size: 13px; }
 
     /* ── Spinner ───────────────────────────────────────────────────────── */
     #spinner {
@@ -268,23 +312,25 @@
 
     <!-- En-tête opérateur -->
     <div class="op-header">
-      <span class="op-name" id="op-name">—</span>
+      <div class="op-avatar" id="op-name">—</div>
       <span class="op-date" id="op-date">—</span>
     </div>
 
     <!-- KPIs PMHO / PCA -->
     <div class="kpi-grid">
-      <div class="kpi-box">
+      <div class="kpi-box" id="kpi-pmho-box">
         <div class="kpi-label">PMHO</div>
         <div class="kpi-value" id="kpi-pmho">—</div>
         <div class="kpi-cible" id="kpi-pmho-cible"></div>
         <div class="kpi-delta" id="kpi-pmho-delta"></div>
+        <div class="kpi-bar-track"><div class="kpi-bar" id="kpi-pmho-bar"></div></div>
       </div>
-      <div class="kpi-box">
+      <div class="kpi-box" id="kpi-pca-box">
         <div class="kpi-label">PCA</div>
         <div class="kpi-value" id="kpi-pca">—</div>
         <div class="kpi-cible" id="kpi-pca-cible"></div>
         <div class="kpi-delta" id="kpi-pca-delta"></div>
+        <div class="kpi-bar-track"><div class="kpi-bar" id="kpi-pca-bar"></div></div>
       </div>
     </div>
 
@@ -434,6 +480,7 @@ const POPUP_RULES = [
   { flag: r => parseInt2(r.streak_PCA) >= 3,               icon: '🔥', msg: '3 jours consécutifs !' },
   { flag: r => r.best_team_PCA === 'True',                  icon: '⭐', msg: 'Meilleur taux équipe aujourd\'hui !' },
   { flag: r => r.progression_PCA === 'True',               icon: '📈', msg: 'PCA en progression cette semaine !' },
+  { flag: r => r.objectif_volume_atteint === 'True',       icon: '💼', msg: 'Objectif volume de propositions atteint !' },
   { flag: r => r.objectif_mensuel_PCA_atteint === 'True',  icon: '✅', msg: 'Objectif mensuel PCA atteint !' },
 ];
 
@@ -475,6 +522,10 @@ function renderToday(todayData, flagRow, targetRow, teamData) {
   const pmhoEl = document.getElementById('kpi-pmho');
   pmhoEl.textContent = fmtPMHO(pmho);
   pmhoEl.className = `kpi-value ${pmhoCls}`;
+  document.getElementById('kpi-pmho-box').className = `kpi-box ${pmhoCls}`;
+  document.getElementById('kpi-pmho-bar').style.width =
+    (pmho !== null && ciblePmho !== null && ciblePmho > 0)
+      ? Math.min(100, pmho / ciblePmho * 100) + '%' : '0%';
 
   document.getElementById('kpi-pmho-cible').textContent =
     ciblePmho !== null ? `Cible ${fmtPMHO(ciblePmho)}` : '';
@@ -496,6 +547,10 @@ function renderToday(todayData, flagRow, targetRow, teamData) {
   const pcaEl = document.getElementById('kpi-pca');
   pcaEl.textContent = fmtPct(taux);
   pcaEl.className = `kpi-value ${pcaCls}`;
+  document.getElementById('kpi-pca-box').className = `kpi-box ${pcaCls}`;
+  document.getElementById('kpi-pca-bar').style.width =
+    (taux !== null && ciblePca !== null && ciblePca > 0)
+      ? Math.min(100, taux / ciblePca * 100) + '%' : '0%';
 
   document.getElementById('kpi-pca-cible').textContent =
     ciblePca !== null ? `Cible ${fmtPct(ciblePca)}` : '';
@@ -516,7 +571,7 @@ function renderToday(todayData, flagRow, targetRow, teamData) {
   const streakPca = parseInt2(flagRow?.streak_PCA);
   if (streakPca && streakPca > 0) {
     const icon = streakPca >= 3 ? '🔥' : '✨';
-    fragments.push(`<div class="badge-row">${icon} Streak PCA : ${streakPca} jour${streakPca > 1 ? 's' : ''}</div>`);
+    fragments.push(`<div class="badge-row badge-streak">${icon} Streak PCA : ${streakPca} jour${streakPca > 1 ? 's' : ''}</div>`);
   }
 
   const nbPca = parseInt2(todayData?.nb_PCA) ?? 0;
@@ -525,7 +580,8 @@ function renderToday(todayData, flagRow, targetRow, teamData) {
   const cibleVol = parseInt2(targetRow?.cible_nb_propositions_j);
   if (cibleVol !== null && cibleVol > 0) {
     const volCls = volJ >= cibleVol ? 'sig-green' : (volJ >= cibleVol * 0.9 ? 'sig-orange' : 'sig-red');
-    fragments.push(`<div class="badge-row">💼 Propositions : <span class="${volCls}">${volJ}/${cibleVol}</span></div>`);
+    const volBadgeCls = volCls.replace('sig-', 'badge-vol-');
+    fragments.push(`<div class="badge-row ${volBadgeCls}">💼 Propositions : <span class="${volCls}">${volJ}/${cibleVol}</span></div>`);
   } else if (volJ > 0) {
     fragments.push(`<div class="badge-row">💼 Propositions : ${volJ}</div>`);
   }
@@ -555,16 +611,21 @@ function renderTeam(teamData, todayStr, currentOpId, flagRow) {
 
   const ciblePca = parseFloat2(flagRow?.cible_j_PCA);
 
+  const BAR_COLORS = { 'sig-green': '#22c55e', 'sig-orange': '#f59e0b', 'sig-red': '#ef4444', 'sig-none': '#8b8fa8' };
+
   let html = '';
   sorted.forEach((row, i) => {
-    const opInit = CONFIG.OPERATORS[row.operateur_id] || row.operateur_id;
-    const taux   = parseFloat2(row.taux_acceptation);
-    const cls    = taux !== null ? sigClass(taux, ciblePca) : 'sig-none';
-    const isSelf = row.operateur_id === currentOpId;
+    const opInit  = CONFIG.OPERATORS[row.operateur_id] || row.operateur_id;
+    const taux    = parseFloat2(row.taux_acceptation);
+    const cls     = taux !== null ? sigClass(taux, ciblePca) : 'sig-none';
+    const isSelf  = row.operateur_id === currentOpId;
+    const barW    = taux !== null ? Math.round(taux * 100) : 0;
+    const barCol  = BAR_COLORS[cls];
     html += `<div class="team-row${isSelf ? '" style="font-weight:800' : ''}">
       <span class="team-rank">${i + 1}.</span>
       <span class="team-op">${opInit}</span>
       <span class="team-val ${cls}">${fmtPct(taux)}</span>
+      <span class="team-bar-wrap"><span class="team-bar-fill" style="width:${barW}%;background:${barCol}"></span></span>
       <span class="team-sig">${sigEmoji(cls)}</span>
     </div>`;
   });
@@ -703,7 +764,14 @@ function renderHistory() {
 // Bootstrap principal
 // ═══════════════════════════════════════════════════════════════════
 
-const opId = new URLSearchParams(window.location.search).get('op') || '1';
+const _urlOp = new URLSearchParams(window.location.search).get('op');
+if (!_urlOp) {
+  const saved = localStorage.getItem('mwps_last_op');
+  if (saved && CONFIG.OPERATORS[saved]) {
+    window.location.replace('?op=' + saved);
+  }
+}
+const opId = _urlOp || '1';
 
 function showError(msg) {
   document.getElementById('spinner').style.display = 'none';
@@ -759,6 +827,9 @@ async function init() {
     // Historique pour onglet 2
     histData    = dataAll;
     histTargets = targetsAll;
+
+    // Persister l'opérateur courant
+    localStorage.setItem('mwps_last_op', opId);
 
     // Afficher
     document.getElementById('spinner').style.display = 'none';
