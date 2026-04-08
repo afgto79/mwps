@@ -383,7 +383,7 @@ function switchTab(name) {
   document.querySelectorAll('nav button').forEach(el => el.classList.remove('active'));
   document.getElementById(`tab-${name}`).classList.add('active');
   document.getElementById(`nav-${name}`).classList.add('active');
-  if (name === 'history' && !historyInitialized) {
+  if (name === 'history' && !historyInitialized && histData) {
     renderHistory();
     historyInitialized = true;
   }
@@ -469,7 +469,7 @@ function renderToday(todayData, flagRow, targetRow, teamData) {
 
   // ── PMHO ──
   const pmho      = parseFloat2(todayData?.PMHO);
-  const ciblePmho = parseFloat2(flagRow?.cible_j_PMHO);
+  const ciblePmho = parseFloat2(targetRow?.cible_PMHO);
   const pmhoCls   = sigClass(pmho, ciblePmho);
 
   const pmhoEl = document.getElementById('kpi-pmho');
@@ -490,7 +490,7 @@ function renderToday(todayData, flagRow, targetRow, teamData) {
 
   // ── PCA ──
   const taux      = parseFloat2(todayData?.taux_acceptation);
-  const ciblePca  = parseFloat2(flagRow?.cible_j_PCA);
+  const ciblePca  = parseFloat2(targetRow?.cible_taux_PCA);
   const pcaCls    = sigClass(taux, ciblePca);
 
   const pcaEl = document.getElementById('kpi-pca');
@@ -601,7 +601,7 @@ function renderHistory() {
   function targetForDate(dateStr, kpi) {
     if (!histTargets) return null;
     const ym = dateStr.slice(0, 7);
-    const t  = histTargets.find(r => r.annee_mois === ym && r.operateur_id === opId);
+    const t  = histTargets.find(r => r.annee_mois === ym && String(r.operateur_id) === String(opId));
     if (!t) return null;
     return kpi === 'pmho' ? parseFloat2(t.cible_PMHO) : parseFloat2(t.cible_taux_PCA);
   }
@@ -719,16 +719,15 @@ async function init() {
   }
 
   try {
-    // Lecture parallèle : data opérateur + flags + targets + data équipe
-    const [dataOp, flagsAll, targetsAll, dataTeam] = await Promise.all([
+    // Lecture parallèle : data (une seule fois) + flags + targets
+    const [dataAll, flagsAll, targetsAll] = await Promise.all([
       fetchSheet('data!A:H'),
       fetchSheet('flags!A:P'),
       fetchSheet('targets!A:G'),
-      fetchSheet('data!A:H'),
     ]);
 
     // Dernier jour travaillé = date la plus récente où nb_ventes_comptoir_j > 0
-    const opRows = dataOp
+    const opRows = dataAll
       .filter(r => r.operateur_id === opId && parseInt2(r.nb_ventes_comptoir_j) > 0);
     opRows.sort((a, b) => b.date.localeCompare(a.date));
     const todayStr   = opRows[0]?.date ?? '';
@@ -737,7 +736,7 @@ async function init() {
     // Flag row : ligne la plus récente pour cet opérateur (indépendant de todayStr)
     const opFlags = flagsAll.filter(r => r.operateur_id === opId);
     opFlags.sort((a, b) => b.date.localeCompare(a.date));
-    const flagRow = opFlags[0] ?? null;
+    const flagRow = opFlags.filter(r => r.date === todayStr)[0] ?? opFlags[0] ?? null;
 
     // Normalisation annee_mois : numéro de série Excel → "YYYY-MM"
     function excelSerialToYearMonth(serial) {
@@ -757,15 +756,15 @@ async function init() {
     const ym = todayStr.slice(0, 7);
     const targetRow = targetsAll.find(r => String(r.operateur_id) === String(opId) && r.annee_mois === ym) ?? null;
 
-    // Historique pour onglet 2 (réutiliser dataOp + dataTeam)
-    histData    = dataTeam;
+    // Historique pour onglet 2
+    histData    = dataAll;
     histTargets = targetsAll;
 
     // Afficher
     document.getElementById('spinner').style.display = 'none';
     document.getElementById('tab-today').classList.add('active');
 
-    renderToday(todayData, flagRow, targetRow, dataTeam);
+    renderToday(todayData, flagRow, targetRow, dataAll);
 
   } catch (err) {
     showError('Données indisponibles — ' + err.message);

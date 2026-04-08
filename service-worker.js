@@ -30,7 +30,7 @@ self.addEventListener('fetch', e => {
 
   // Sheets API → network only (pas de cache pour les données)
   if (url.includes('sheets.googleapis.com')) {
-    e.respondWith(fetch(e.request).catch(() => new Response('{}', { headers: { 'Content-Type': 'application/json' } })));
+    e.respondWith(fetch(e.request).catch(() => new Response(JSON.stringify({error:'offline'}), {status:503, headers:{'Content-Type':'application/json'}})));
     return;
   }
 
