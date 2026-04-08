@@ -819,11 +819,17 @@ async function init() {
       if (!isNaN(n) && n > 40000) return excelSerialToYearMonth(n);
       return v; // déjà une string "YYYY-MM"
     }
-    targetsAll.forEach(r => { r.annee_mois = normalizeYearMonth(r.annee_mois); });
+    targetsAll.forEach(r => {
+      r.annee_mois             = normalizeYearMonth(r.annee_mois);
+      r.cible_PMHO             = parseFloat(String(r.cible_PMHO).replace(',', '.'));
+      r.cible_taux_PCA         = parseFloat(String(r.cible_taux_PCA).replace(',', '.'));
+      r.cible_nb_propositions_j = parseInt(r.cible_nb_propositions_j);
+    });
 
     // Target row du mois courant
     const ym = todayStr.slice(0, 7);
     const targetRow = targetsAll.find(r => String(r.operateur_id) === String(opId) && r.annee_mois === ym) ?? null;
+    console.log('[debug] cible_taux_PCA brut:', targetRow?.cible_taux_PCA, typeof targetRow?.cible_taux_PCA);
 
     // Historique pour onglet 2
     histData    = dataAll;
