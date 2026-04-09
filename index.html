@@ -12,6 +12,25 @@
   <link rel="apple-touch-icon" href="icon-192.png">
   <link rel="icon" href="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7">
   <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&family=Nunito+Sans:wght@400;600&display=swap" rel="stylesheet">
+  <script>
+    (function() {
+      const op = new URLSearchParams(window.location.search).get('op') || '1';
+      const manifest = {
+        name: 'MWPS Dashboard',
+        short_name: 'MWPS',
+        start_url: '/mwps/?op=' + op,
+        display: 'standalone',
+        background_color: '#fdf6ee',
+        theme_color: '#ff6b35',
+        icons: [
+          { src: 'icon-192.png', sizes: '192x192', type: 'image/png' },
+          { src: 'icon-512.png', sizes: '512x512', type: 'image/png' }
+        ]
+      };
+      const blob = new Blob([JSON.stringify(manifest)], { type: 'application/manifest+json' });
+      document.querySelector('link[rel="manifest"]').href = URL.createObjectURL(blob);
+    })();
+  </script>
   <script src="config.js"></script>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
