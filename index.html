@@ -607,12 +607,20 @@ function sigEmoji(cls) {
   return { 'sig-green': '🟢', 'sig-orange': '🟠', 'sig-red': '🔴', 'sig-none': '⚫' }[cls] ?? '';
 }
 
-// Couleur jauge : seuil 5% (plus fin que sigClass)
+// Couleur jauge : seuil 5% (plus fin que sigClass) — utilisé pour valeurs jour
 function gaugeColor(value, cible) {
   if (value === null || cible === null || cible === 0) return 'var(--muted)';
   const ratio = value / cible;
   if (ratio >= 1)    return 'var(--green)';
   if (ratio >= 0.95) return 'var(--orange)';
+  return 'var(--red)';
+}
+
+// Couleur trajectoire mensuelle — seuils 95% / 80%
+function trajColor(ratio) {
+  if (ratio === null) return 'var(--muted)';
+  if (ratio >= 0.95) return 'var(--green)';
+  if (ratio >= 0.80) return 'var(--orange)';
   return 'var(--red)';
 }
 
@@ -743,10 +751,10 @@ function renderToday(todayData, flagRow, targetRow, teamData) {
   const ciblePmho = parseFloat2(targetRow?.cible_PMHO);
 
   document.getElementById('kpi-pmho').textContent = fmtPMHO(pmho);
-  const pmhoBar = document.getElementById('kpi-pmho-bar');
-  pmhoBar.style.width = (pmho !== null && ciblePmho !== null && ciblePmho > 0)
-    ? Math.min(100, pmho / ciblePmho * 100) + '%' : '0%';
-  pmhoBar.style.background = gaugeColor(pmho, ciblePmho);
+  const pmhoBar   = document.getElementById('kpi-pmho-bar');
+  const trajPmho  = parseFloat2(String(flagRow?.traj_ratio_PMHO ?? '').replace(',', '.'));
+  pmhoBar.style.width      = trajPmho !== null ? Math.min(100, trajPmho * 100) + '%' : '0%';
+  pmhoBar.style.background = trajColor(trajPmho);
   document.getElementById('kpi-pmho-cible').textContent =
     ciblePmho !== null ? `Cible ${fmtPMHO(ciblePmho)}` : '';
   document.getElementById('kpi-pmho-coaching').textContent = coachingPMHO(pmho, ciblePmho);
@@ -756,10 +764,10 @@ function renderToday(todayData, flagRow, targetRow, teamData) {
   const ciblePca = parseFloat2(targetRow?.cible_taux_PCA);
 
   document.getElementById('kpi-pca').textContent = fmtPct(taux);
-  const pcaBar = document.getElementById('kpi-pca-bar');
-  pcaBar.style.width = (taux !== null && ciblePca !== null && ciblePca > 0)
-    ? Math.min(100, taux / ciblePca * 100) + '%' : '0%';
-  pcaBar.style.background = gaugeColor(taux, ciblePca);
+  const pcaBar   = document.getElementById('kpi-pca-bar');
+  const trajPca  = parseFloat2(String(flagRow?.traj_ratio_PCA ?? '').replace(',', '.'));
+  pcaBar.style.width      = trajPca !== null ? Math.min(100, trajPca * 100) + '%' : '0%';
+  pcaBar.style.background = trajColor(trajPca);
   document.getElementById('kpi-pca-cible').textContent =
     ciblePca !== null ? `Cible ${fmtPct(ciblePca)}` : '';
   document.getElementById('kpi-pca-coaching').textContent = coachingPCA(taux, ciblePca);
@@ -1014,7 +1022,7 @@ async function init() {
   try {
     const [dataAll, flagsAll, targetsAll] = await Promise.all([
       fetchSheet('data!A:H'),
-      fetchSheet('flags!A:P'),
+      fetchSheet('flags!A:R'),
       fetchSheet('targets!A:G'),
     ]);
 
