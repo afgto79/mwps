@@ -495,7 +495,7 @@
 
     <div class="team-section" id="team-section" style="display:none">
       <div class="team-card">
-        <div class="team-title">Équipe · Dernière journée</div>
+        <div class="team-title">Panier moyen · Mois en cours</div>
         <div id="team-list"></div>
       </div>
     </div>
@@ -739,7 +739,7 @@ function closePopup() {
 // Onglet Aujourd'hui
 // ═══════════════════════════════════════════════════════════════════
 
-function renderToday(todayData, flagRow, targetRow, teamData) {
+function renderToday(todayData, flagRow, targetRow, teamData, targetsAll) {
   const opInitials = CONFIG.OPERATORS[opId] || opId;
   const todayStr   = todayData ? todayData.date : '';
 
@@ -753,8 +753,13 @@ function renderToday(todayData, flagRow, targetRow, teamData) {
   document.getElementById('kpi-pmho').textContent = fmtPMHO(pmho);
   const pmhoBar   = document.getElementById('kpi-pmho-bar');
   const trajPmho  = parseFloat2(String(flagRow?.traj_ratio_PMHO ?? '').replace(',', '.'));
-  pmhoBar.style.width      = trajPmho !== null ? Math.min(100, trajPmho * 100) + '%' : '0%';
-  pmhoBar.style.background = trajColor(trajPmho);
+  if (trajPmho !== null) {
+    pmhoBar.style.width      = Math.min(100, trajPmho * 100) + '%';
+    pmhoBar.style.background = trajColor(trajPmho);
+  } else {
+    pmhoBar.style.width      = (pmho !== null && ciblePmho > 0) ? Math.min(100, pmho / ciblePmho * 100) + '%' : '0%';
+    pmhoBar.style.background = gaugeColor(pmho, ciblePmho);
+  }
   document.getElementById('kpi-pmho-cible').textContent =
     ciblePmho !== null ? `Cible ${fmtPMHO(ciblePmho)}` : '';
   document.getElementById('kpi-pmho-coaching').textContent = coachingPMHO(pmho, ciblePmho);
@@ -766,8 +771,13 @@ function renderToday(todayData, flagRow, targetRow, teamData) {
   document.getElementById('kpi-pca').textContent = fmtPct(taux);
   const pcaBar   = document.getElementById('kpi-pca-bar');
   const trajPca  = parseFloat2(String(flagRow?.traj_ratio_PCA ?? '').replace(',', '.'));
-  pcaBar.style.width      = trajPca !== null ? Math.min(100, trajPca * 100) + '%' : '0%';
-  pcaBar.style.background = trajColor(trajPca);
+  if (trajPca !== null) {
+    pcaBar.style.width      = Math.min(100, trajPca * 100) + '%';
+    pcaBar.style.background = trajColor(trajPca);
+  } else {
+    pcaBar.style.width      = (taux !== null && ciblePca > 0) ? Math.min(100, taux / ciblePca * 100) + '%' : '0%';
+    pcaBar.style.background = gaugeColor(taux, ciblePca);
+  }
   document.getElementById('kpi-pca-cible').textContent =
     ciblePca !== null ? `Cible ${fmtPct(ciblePca)}` : '';
   document.getElementById('kpi-pca-coaching').textContent = coachingPCA(taux, ciblePca);
@@ -808,55 +818,49 @@ function renderToday(todayData, flagRow, targetRow, teamData) {
   }
 
   // ── Équipe ──
-  renderTeam(teamData, todayStr, opId, flagRow, targetRow);
+  renderTeam(teamData, todayStr, opId, targetRow, targetsAll);
 
   // ── Pop-up + confettis ──
   maybeShowPopup(flagRow, todayStr);
   maybeConfetti(flagRow, todayStr);
 }
 
-function renderTeam(teamData, todayStr, currentOpId, flagRow, targetRow) {
-  const section  = document.getElementById('team-section');
-  const listEl   = document.getElementById('team-list');
-  const todayOps = teamData.filter(r => r.date === todayStr);
+function renderTeam(teamData, todayStr, currentOpId, targetRow, targetsAll) {
+  const section = document.getElementById('team-section');
+  const listEl  = document.getElementById('team-list');
+  const ym      = todayStr ? todayStr.slice(0, 7) : '';
 
-  const workers = todayOps.filter(r => parseInt2(r.nb_ventes_comptoir_j) > 0 && CONFIG.OPERATORS[r.operateur_id]);
-  if (workers.length <= 1) { section.style.display = 'none'; return; }
+  // Moyenne PMHO mensuelle par opérateur
+  const opData = Object.keys(CONFIG.OPERATORS).map(id => {
+    const rows   = teamData.filter(r => r.operateur_id === id && r.date.startsWith(ym) && parseInt2(r.nb_ventes_comptoir_j) > 0);
+    const vals   = rows.map(r => parseFloat2(r.PMHO)).filter(v => v !== null);
+    const avg    = vals.length ? vals.reduce((a, b) => a + b, 0) / vals.length : null;
+    const t      = targetsAll?.find(r => String(r.operateur_id) === String(id) && r.annee_mois === ym);
+    const cible  = parseFloat2(t?.cible_PMHO) ?? parseFloat2(targetRow?.cible_PMHO);
+    return { id, avg, cible };
+  }).filter(o => o.avg !== null);
 
-  const withTaux = workers.filter(r => parseFloat2(r.taux_acceptation) !== null);
-  const noTaux   = workers.filter(r => parseFloat2(r.taux_acceptation) === null);
-  withTaux.sort((a, b) => parseFloat2(b.taux_acceptation) - parseFloat2(a.taux_acceptation));
-  const sorted = [...withTaux, ...noTaux];
+  if (opData.length <= 1) { section.style.display = 'none'; return; }
 
-  // Cible équipe : cible journalière (flagRow) ou mensuelle (targetRow) en fallback
-  const ciblePca = parseFloat2(flagRow?.cible_j_PCA) ?? parseFloat2(targetRow?.cible_taux_PCA);
-
-  const BAR_FILL = {
-    'sig-green':  'var(--green)',
-    'sig-orange': 'var(--orange)',
-    'sig-red':    'var(--red)',
-    'sig-none':   'var(--border)',
-  };
+  opData.sort((a, b) => b.avg - a.avg);
+  const maxAvg = opData[0].avg;
 
   let html = '';
-  sorted.forEach((row, i) => {
-    const opInit  = CONFIG.OPERATORS[row.operateur_id] || row.operateur_id;
-    const taux    = parseFloat2(row.taux_acceptation);
-    const cls     = taux !== null ? sigClass(taux, ciblePca) : 'sig-none';
-    const isSelf  = row.operateur_id === currentOpId;
-    const barW    = taux !== null ? Math.round(taux * 100) : 0;
-    const opColor = OP_COLORS[row.operateur_id] || 'var(--muted)';
-    const emoji   = sigEmoji(taux !== null ? cls : 'sig-none');
+  opData.forEach((o, i) => {
+    const opInit  = CONFIG.OPERATORS[o.id];
+    const isSelf  = o.id === currentOpId;
+    const barW    = maxAvg > 0 ? Math.round((o.avg / maxAvg) * 100) : 0;
+    const color   = gaugeColor(o.avg, o.cible);
+    const opColor = OP_COLORS[o.id] || 'var(--muted)';
     html += `<div class="team-row${isSelf ? ' team-self' : ''}">
       <span class="team-rank">${i + 1}.</span>
       <span class="team-avatar" style="background:${opColor}">${opInit}</span>
       <div class="team-bar-col">
         <div class="team-bar-track">
-          <div class="team-bar-fill" style="width:${barW}%;background:${BAR_FILL[cls]}"></div>
+          <div class="team-bar-fill" style="width:${barW}%;background:${color}"></div>
         </div>
       </div>
-      <span class="team-val ${cls}">${fmtPct(taux)}</span>
-      <span class="team-emoji">${emoji}</span>
+      <span class="team-val" style="color:${color}">${fmtPMHO(o.avg)}</span>
     </div>`;
   });
 
@@ -1073,7 +1077,7 @@ async function init() {
     document.getElementById('spinner').style.display = 'none';
     document.getElementById('tab-today').classList.add('active');
 
-    renderToday(todayData, flagRow, targetRow, dataAll);
+    renderToday(todayData, flagRow, targetRow, dataAll, targetsAll);
 
   } catch (err) {
     showError('Données indisponibles — ' + err.message);
