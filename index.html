@@ -678,9 +678,7 @@ function coachingPCA(taux, cible) {
 // Confettis + couleurs opérateurs
 // ═══════════════════════════════════════════════════════════════════
 
-const OP_COLORS = {
-  '1': '#ff6b35', '2': '#3b82f6', '7': '#22c55e', '8': '#8b5cf6',
-};
+const OP_COLORS = {};  // chargé dynamiquement depuis la feuille `operators`
 
 function maybeConfetti(flagRow, todayStr) {
   if (!flagRow || !todayStr) return;
@@ -1003,7 +1001,7 @@ function renderHistory() {
 const _urlOp = new URLSearchParams(window.location.search).get('op');
 if (!_urlOp) {
   const saved = localStorage.getItem('mwps_last_op');
-  if (saved && CONFIG.OPERATORS[saved]) {
+  if (saved) {
     window.location.replace('?op=' + saved);
     throw new Error('redirect');
   }
@@ -1018,12 +1016,19 @@ function showError(msg) {
 }
 
 async function init() {
-  if (!CONFIG.OPERATORS[opId]) {
-    showError(`Opérateur inconnu : ?op=${opId}`);
-    return;
-  }
-
   try {
+    // Charger les opérateurs actifs depuis Sheets en premier
+    const opsRows = await fetchSheet('operators');
+    opsRows.filter(r => r.actif === 'TRUE' || r.actif === 'true' || r.actif === '1').forEach(r => {
+      CONFIG.OPERATORS[r.id] = r.initials;
+      OP_COLORS[r.id]        = r.color || '#94a3b8';
+    });
+
+    if (!CONFIG.OPERATORS[opId]) {
+      showError(`Opérateur inconnu : ?op=${opId}`);
+      return;
+    }
+
     const [dataAll, flagsAll, targetsAll] = await Promise.all([
       fetchSheet('data!A:H'),
       fetchSheet('flags!A:R'),
