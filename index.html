@@ -1018,7 +1018,10 @@ function showError(msg) {
 async function init() {
   try {
     // Charger les opérateurs actifs depuis Sheets en premier
+    // (reset obligatoire : config.js peut être en cache avec d'anciens opérateurs)
     const opsRows = await fetchSheet('operators');
+    Object.keys(CONFIG.OPERATORS).forEach(k => delete CONFIG.OPERATORS[k]);
+    Object.keys(OP_COLORS).forEach(k => delete OP_COLORS[k]);
     opsRows.filter(r => r.actif === 'TRUE' || r.actif === 'true' || r.actif === '1').forEach(r => {
       CONFIG.OPERATORS[r.id] = r.initials;
       OP_COLORS[r.id]        = r.color || '#94a3b8';
