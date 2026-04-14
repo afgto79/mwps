@@ -295,6 +295,20 @@
       50%       { transform: scale(1.02); }
     }
 
+    /* ── Données manquantes ────────────────────────────────────── */
+    .data-warn {
+      background: rgba(245,158,11,0.12);
+      border: 1px solid rgba(245,158,11,0.45);
+      border-radius: 20px;
+      padding: 8px 14px;
+      margin-bottom: 9px;
+      font-family: 'Nunito', sans-serif;
+      font-size: 0.8rem;
+      font-weight: 700;
+      color: #92400e;
+      flex-shrink: 0;
+    }
+
     /* ── Classement équipe ─────────────────────────────────────────── */
     .team-section {
       flex: 1;
@@ -492,6 +506,8 @@
     </div>
 
     <div class="streak-pill" id="streak-pill" style="display:none"></div>
+
+    <div class="data-warn" id="data-warn" style="display:none"></div>
 
     <div class="team-section" id="team-section" style="display:none">
       <div class="team-card">
@@ -731,6 +747,38 @@ function maybeShowPopup(flagRow, todayStr) {
 
 function closePopup() {
   document.getElementById('popup-overlay').classList.remove('show');
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// Données manquantes
+// ═══════════════════════════════════════════════════════════════════
+
+function getMissingDates(allData, opId) {
+  const cutoff = new Date();
+  cutoff.setDate(cutoff.getDate() - 30);
+  const cutStr = cutoff.toISOString().slice(0, 10);
+
+  // Jours ouvrés = dates où au moins un opérateur a des ventes
+  const workingDays = new Set(
+    allData.filter(r => r.date >= cutStr && parseInt2(r.nb_ventes_comptoir_j) > 0).map(r => r.date)
+  );
+  // Jours où cet opérateur a des données
+  const opDays = new Set(
+    allData.filter(r => r.operateur_id === opId && r.date >= cutStr && parseInt2(r.nb_ventes_comptoir_j) > 0).map(r => r.date)
+  );
+  return [...workingDays].filter(d => !opDays.has(d)).sort().reverse();
+}
+
+function renderDataWarn(allData, opId) {
+  const missing = getMissingDates(allData, opId);
+  const el = document.getElementById('data-warn');
+  if (!missing.length) { el.style.display = 'none'; return; }
+
+  const fmt    = d => { const p = d.split('-'); return `${p[2]}/${p[1]}`; };
+  const shown  = missing.slice(0, 3).map(fmt);
+  const suffix = missing.length > 3 ? ` +${missing.length - 3}` : '';
+  el.textContent = `⚠ Données manquantes : ${shown.join(', ')}${suffix}`;
+  el.style.display = 'block';
 }
 
 // ═══════════════════════════════════════════════════════════════════
@@ -1086,6 +1134,7 @@ async function init() {
     document.getElementById('tab-today').classList.add('active');
 
     renderToday(todayData, flagRow, targetRow, dataAll, targetsAll);
+    renderDataWarn(dataAll, opId);
 
   } catch (err) {
     showError('Données indisponibles — ' + err.message);
