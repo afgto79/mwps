@@ -1120,7 +1120,9 @@ async function init() {
 
     const opFlags = flagsAll.filter(r => r.operateur_id === opId);
     opFlags.sort((a, b) => b.date.localeCompare(a.date));
-    const flagRow = opFlags.filter(r => r.date === todayStr)[0] ?? opFlags[0] ?? null;
+    // Prend le flag du dernier jour travaillé (≤ todayStr) pour ne pas afficher
+    // des alertes calculées sur un jour de congé plus récent
+    const flagRow = opFlags.find(r => r.date <= todayStr) ?? null;
 
     function excelSerialToYearMonth(serial) {
       const d = new Date((serial - 25569) * 86400 * 1000);
