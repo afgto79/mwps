@@ -525,7 +525,7 @@
       <canvas id="chart-pmho" height="180"></canvas>
     </div>
     <div class="chart-wrap">
-      <div class="chart-title">Taux PCA — 365 jours</div>
+      <div class="chart-title">Volume PC (PCA+PCR) — 365 jours</div>
       <canvas id="chart-pca" height="180"></canvas>
     </div>
   </div>
@@ -951,14 +951,18 @@ function renderHistory() {
 
   const labels   = rows.map(r => r.date);
   const pmhoVals = rows.map(r => parseFloat2(r.PMHO));
-  const pcaVals  = rows.map(r => parseFloat2(r.taux_acceptation));
+  const pcaVals  = rows.map(r => {
+    const pca = parseInt2(r.nb_PCA);
+    const pcr = parseInt2(r.nb_PCR);
+    return (pca === null && pcr === null) ? null : (pca ?? 0) + (pcr ?? 0);
+  });
 
   function targetForDate(dateStr, kpi) {
     if (!histTargets) return null;
     const ym = dateStr.slice(0, 7);
     const t  = histTargets.find(r => r.annee_mois === ym && String(r.operateur_id) === String(opId));
     if (!t) return null;
-    return kpi === 'pmho' ? parseFloat2(t.cible_PMHO) : parseFloat2(t.cible_taux_PCA);
+    return kpi === 'pmho' ? parseFloat2(t.cible_PMHO) : parseFloat2(t.cible_nb_propositions_j);
   }
 
   function colorForPoint(v, cible) {
@@ -1054,7 +1058,7 @@ function renderHistory() {
   if (chartPca)  chartPca.destroy();
 
   chartPmho = makeChart('chart-pmho', labels, pmhoVals, pmhoCibles, 'PMHO',     'Cible', v => v !== null ? v.toFixed(2) + ' €' : '—');
-  chartPca  = makeChart('chart-pca',  labels, pcaVals,  pcaCibles,  'Taux PCA', 'Cible', v => v !== null ? Math.round(v * 100) + '%' : '—');
+  chartPca  = makeChart('chart-pca',  labels, pcaVals,  pcaCibles,  'Volume PC', 'Cible', v => v !== null ? v + ' PC' : '—');
 }
 
 // ═══════════════════════════════════════════════════════════════════
