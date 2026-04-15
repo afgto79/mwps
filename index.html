@@ -727,8 +727,10 @@ function maybeConfetti(flagRow, todayStr) {
 const POPUP_RULES = [
   { flag: r => r.record_PMHO === 'True',                  icon: '🏆', msg: 'Record perso PMHO !' },
   { flag: r => r.record_taux_PCA === 'True',              icon: '🏆', msg: 'Record perso PCA !' },
-  { flag: r => parseInt2(r.streak_PCA) >= 7,              icon: '🔥', msg: '7 jours de suite au-dessus de la cible !' },
-  { flag: r => parseInt2(r.streak_PCA) >= 3,              icon: '🔥', msg: '3 jours consécutifs !' },
+  { flag: r => parseInt2(r.streak_PCA)  >= 7,             icon: '🔥', msg: '7 jours de suite au-dessus de la cible PCA !' },
+  { flag: r => parseInt2(r.streak_PMHO) >= 7,             icon: '🔥', msg: '7 jours de suite au-dessus de la cible PMHO !' },
+  { flag: r => parseInt2(r.streak_PCA)  >= 3,             icon: '🔥', msg: '3 jours de suite au-dessus de la cible PCA !' },
+  { flag: r => parseInt2(r.streak_PMHO) >= 3,             icon: '🔥', msg: '3 jours de suite au-dessus de la cible PMHO !' },
   { flag: r => r.best_team_PCA === 'True',                icon: '⭐', msg: 'Meilleur taux équipe aujourd\'hui !' },
   { flag: r => r.progression_PCA === 'True',              icon: '📈', msg: 'PCA en progression cette semaine !' },
   { flag: r => r.objectif_volume_atteint === 'True',      icon: '💼', msg: 'Objectif volume de propositions atteint !' },
@@ -857,12 +859,20 @@ function renderToday(todayData, flagRow, targetRow, teamData, targetsAll) {
   // ── Streak ──
   const streakPca  = parseInt2(flagRow?.streak_PCA)  ?? 0;
   const streakPmho = parseInt2(flagRow?.streak_PMHO) ?? 0;
-  const streak     = streakPca > 0 ? streakPca : streakPmho;
   const streakEl   = document.getElementById('streak-pill');
-  if (streak > 0) {
-    const icon = streak >= 3 ? '🔥' : '✨';
-    streakEl.textContent = `${icon} ${streak} jour${streak > 1 ? 's' : ''} de suite au-dessus de la cible !`;
-    streakEl.className   = 'streak-pill' + (streak >= 7 ? ' streak-pulse' : '');
+  if (streakPca > 0 || streakPmho > 0) {
+    const msgs = [];
+    if (streakPca > 0) {
+      const icon = streakPca >= 3 ? '🔥' : '✨';
+      msgs.push(`${icon} ${streakPca}j PCA au-dessus de la cible`);
+    }
+    if (streakPmho > 0) {
+      const icon = streakPmho >= 3 ? '🔥' : '✨';
+      msgs.push(`${icon} ${streakPmho}j PMHO au-dessus de la cible`);
+    }
+    streakEl.textContent = msgs.join(' · ');
+    const maxStreak = Math.max(streakPca, streakPmho);
+    streakEl.className   = 'streak-pill' + (maxStreak >= 7 ? ' streak-pulse' : '');
     streakEl.style.display = 'block';
   } else {
     streakEl.style.display = 'none';
