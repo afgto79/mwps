@@ -1109,9 +1109,13 @@ async function init() {
       return `${y}-${m}`;
     }
     function normalizeYearMonth(v) {
-      const n = Number(v);
-      if (!isNaN(n) && n > 40000) return excelSerialToYearMonth(n);
-      return v;
+      const s = String(v).trim();
+      // Format compact YYYYMM (ex : '202604') → '2026-04'
+      if (/^\d{6}$/.test(s)) return `${s.slice(0, 4)}-${s.slice(4, 6)}`;
+      // Serial Excel 5 chiffres (ex : 46118) → 'YYYY-MM'
+      const n = Number(s);
+      if (!isNaN(n) && n > 40000 && n < 100000) return excelSerialToYearMonth(n);
+      return s;
     }
     targetsAll.forEach(r => {
       r.annee_mois              = normalizeYearMonth(r.annee_mois);
