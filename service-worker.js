@@ -1,4 +1,4 @@
-const CACHE = 'mwps-v5';
+const CACHE = 'mwps-v6';
 const PRECACHE = [
   './',
   './index.html',

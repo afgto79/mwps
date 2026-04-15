@@ -555,12 +555,17 @@
 // ═══════════════════════════════════════════════════════════════════
 
 function normalizeDate(v) {
-  const n = Number(v);
+  const s = String(v).trim();
+  // Format français DD/MM/YYYY → YYYY-MM-DD
+  const mFr = s.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+  if (mFr) return `${mFr[3]}-${mFr[2]}-${mFr[1]}`;
+  // Sérial Excel/Sheets → YYYY-MM-DD
+  const n = Number(s);
   if (!isNaN(n) && n > 40000) {
     const d = new Date((n - 25569) * 86400 * 1000);
     return d.toISOString().slice(0, 10);
   }
-  return String(v);
+  return s;
 }
 
 const DATE_FIELDS = ['date'];
