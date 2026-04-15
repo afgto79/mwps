@@ -769,9 +769,9 @@ function getMissingDates(allData, opId) {
   const workingDays = new Set(
     allData.filter(r => r.date >= cutStr && parseInt2(r.nb_ventes_comptoir_j) > 0).map(r => r.date)
   );
-  // Jours où cet opérateur a des données
+  // Jours où cet opérateur a une ligne (ventes = 0 = congé, pas manquant)
   const opDays = new Set(
-    allData.filter(r => r.operateur_id === opId && r.date >= cutStr && parseInt2(r.nb_ventes_comptoir_j) > 0).map(r => r.date)
+    allData.filter(r => r.operateur_id === opId && r.date >= cutStr).map(r => r.date)
   );
   return [...workingDays].filter(d => !opDays.has(d)).sort().reverse();
 }
