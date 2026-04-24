@@ -488,7 +488,7 @@
         <div class="kpi-coaching" id="kpi-pmho-coaching"></div>
       </div>
       <div class="kpi-card" id="kpi-pca-box">
-        <div class="kpi-label">🤝 Conseils</div>
+        <div class="kpi-label">🤝 Volume PC</div>
         <div class="kpi-value" id="kpi-pca">—</div>
         <div class="kpi-gauge-track"><div class="kpi-gauge-fill" id="kpi-pca-bar"></div></div>
         <div class="kpi-target" id="kpi-pca-cible"></div>
@@ -499,7 +499,7 @@
     <div class="prop-section" id="prop-section" style="display:none">
       <div class="prop-row">
         <span class="prop-icon">◆</span>
-        <span class="prop-label">Propositions</span>
+        <span class="prop-label">Propositions acceptées</span>
         <span class="prop-count" id="prop-count">—</span>
       </div>
       <div class="prop-track"><div class="prop-fill" id="prop-fill"></div></div>
@@ -696,6 +696,16 @@ function coachingPCA(taux, cible) {
   return '🔴 Pense à proposer systématiquement.';
 }
 
+function coachingVol(vol, cible) {
+  if (!vol && vol !== 0) return 'Aucune proposition ce jour.';
+  if (cible === null || cible === 0) return '';
+  if (vol >= cible) return '🟢 Objectif atteint !';
+  const manque = cible - vol;
+  if (manque === 1) return '🟠 Plus qu\'1 proposition !';
+  if (manque <= 2)  return `🟠 Plus que ${manque} propositions.`;
+  return `🔴 ${manque} de plus pour l'objectif.`;
+}
+
 // ═══════════════════════════════════════════════════════════════════
 // Confettis + couleurs opérateurs
 // ═══════════════════════════════════════════════════════════════════
@@ -818,37 +828,31 @@ function renderToday(todayData, flagRow, targetRow, teamData, targetsAll) {
     ciblePmho !== null ? `Cible ${fmtPMHO(ciblePmho)}` : '';
   document.getElementById('kpi-pmho-coaching').textContent = coachingPMHO(pmho, ciblePmho);
 
-  // ── PCA ──
+  // ── Volume PC (total propositions) ──
+  const nbPcaKpi = parseInt2(todayData?.nb_PCA) ?? 0;
+  const nbPcrKpi = parseInt2(todayData?.nb_PCR) ?? 0;
+  const volKpi   = nbPcaKpi + nbPcrKpi;
+  const cibleVol = parseInt2(targetRow?.cible_nb_propositions_j);
+
+  document.getElementById('kpi-pca').textContent =
+    (cibleVol !== null && cibleVol > 0) ? `${volKpi} / ${cibleVol}` : String(volKpi);
+  const pcaBar = document.getElementById('kpi-pca-bar');
+  pcaBar.style.width      = (cibleVol > 0) ? Math.min(100, volKpi / cibleVol * 100) + '%' : '0%';
+  pcaBar.style.background = gaugeColor(volKpi, cibleVol);
+  document.getElementById('kpi-pca-cible').textContent =
+    cibleVol !== null ? `Cible ${cibleVol}/j` : '';
+  document.getElementById('kpi-pca-coaching').textContent = coachingVol(volKpi, cibleVol);
+
+  // ── Propositions acceptées (taux vs cible_taux_PCA) ──
   const taux     = parseFloat2(todayData?.taux_acceptation);
   const ciblePca = parseFloat2(targetRow?.cible_taux_PCA);
-
-  document.getElementById('kpi-pca').textContent = fmtPct(taux);
-  const pcaBar   = document.getElementById('kpi-pca-bar');
-  const trajPca  = parseFloat2(String(flagRow?.traj_ratio_PCA ?? '').replace(',', '.'));
-  if (trajPca !== null) {
-    pcaBar.style.width      = Math.min(100, trajPca * 100) + '%';
-    pcaBar.style.background = trajColor(trajPca);
-  } else {
-    pcaBar.style.width      = (taux !== null && ciblePca > 0) ? Math.min(100, taux / ciblePca * 100) + '%' : '0%';
-    pcaBar.style.background = gaugeColor(taux, ciblePca);
-  }
-  document.getElementById('kpi-pca-cible').textContent =
-    ciblePca !== null ? `Cible ${fmtPct(ciblePca)}` : '';
-  document.getElementById('kpi-pca-coaching').textContent = coachingPCA(taux, ciblePca);
-
-  // ── Propositions ──
-  const nbPca    = parseInt2(todayData?.nb_PCA) ?? 0;
-  const nbPcr    = parseInt2(todayData?.nb_PCR) ?? 0;
-  const volJ     = nbPca + nbPcr;
-  const cibleVol = parseInt2(targetRow?.cible_nb_propositions_j);
   const propEl   = document.getElementById('prop-section');
 
-  if (volJ > 0 || (cibleVol !== null && cibleVol > 0)) {
-    const propPct   = (cibleVol > 0) ? Math.min(100, volJ / cibleVol * 100) : 0;
-    const propColor = (cibleVol !== null && cibleVol > 0 && volJ >= cibleVol)
-      ? 'var(--green)' : 'var(--orange)';
+  if (taux !== null || ciblePca !== null) {
+    const propPct   = (taux !== null && ciblePca > 0) ? Math.min(100, taux / ciblePca * 100) : 0;
+    const propColor = (taux !== null && ciblePca > 0 && taux >= ciblePca) ? 'var(--green)' : 'var(--orange)';
     document.getElementById('prop-count').textContent =
-      (cibleVol !== null && cibleVol > 0) ? `${volJ} / ${cibleVol}` : `${volJ}`;
+      (ciblePca !== null && ciblePca > 0) ? `${fmtPct(taux)} / ${fmtPct(ciblePca)}` : fmtPct(taux);
     const fill = document.getElementById('prop-fill');
     fill.style.width      = propPct + '%';
     fill.style.background = propColor;
