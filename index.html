@@ -274,6 +274,13 @@
       width: 0;
       transition: width .5s ease-out;
     }
+    .prop-sub {
+      font-family: 'Nunito Sans', sans-serif;
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: var(--text);
+      margin-top: 6px;
+    }
 
     /* ── Streak pill ───────────────────────────────────────────────── */
     .streak-pill {
@@ -500,9 +507,9 @@
       <div class="prop-row">
         <span class="prop-icon">◆</span>
         <span class="prop-label">Propositions acceptées</span>
-        <span class="prop-count" id="prop-count">—</span>
       </div>
       <div class="prop-track"><div class="prop-fill" id="prop-fill"></div></div>
+      <div class="prop-sub" id="prop-sub"></div>
     </div>
 
     <div class="streak-pill" id="streak-pill" style="display:none"></div>
@@ -696,6 +703,30 @@ function coachingPCA(taux, cible) {
   return '🔴 Pense à proposer systématiquement.';
 }
 
+function pickPropMsg(taux, ciblePca) {
+  if (taux === null || ciblePca === null || ciblePca === 0) return '';
+  const ciblePct = Math.round(ciblePca * 100);
+  const rnd = a => a[Math.floor(Math.random() * a.length)];
+  if (taux >= ciblePca) return rnd([
+    `Objectif atteint ✓ — cible ${ciblePct} % de PCA`,
+    'Très bon conseil : continue ainsi',
+    'Contrat rempli : garde le rythme',
+    'Belle efficacité au comptoir',
+  ]);
+  if (taux < ciblePca * 0.5) return rnd([
+    "Écoute d'abord, propose ensuite",
+    'Chaque refus aide à progresser',
+    'Repère les occasions qui reviennent',
+    'Une question ouverte peut aider',
+  ]);
+  return rnd([
+    "Proche du but : continue l'effort",
+    'Bon rythme, affine ton conseil',
+    'Reformule puis propose simplement',
+    'Tu progresses : garde la méthode',
+  ]);
+}
+
 function coachingVol(vol, cible) {
   if (!vol && vol !== 0) return 'Aucune proposition ce jour.';
   if (cible === null || cible === 0) return '';
@@ -851,11 +882,10 @@ function renderToday(todayData, flagRow, targetRow, teamData, targetsAll) {
   if (taux !== null || ciblePca !== null) {
     const propPct   = (taux !== null && ciblePca > 0) ? Math.min(100, taux / ciblePca * 100) : 0;
     const propColor = (taux !== null && ciblePca > 0 && taux >= ciblePca) ? 'var(--green)' : 'var(--orange)';
-    document.getElementById('prop-count').textContent =
-      (ciblePca !== null && ciblePca > 0) ? `${fmtPct(taux)} / ${fmtPct(ciblePca)}` : fmtPct(taux);
     const fill = document.getElementById('prop-fill');
     fill.style.width      = propPct + '%';
     fill.style.background = propColor;
+    document.getElementById('prop-sub').textContent = pickPropMsg(taux, ciblePca);
     propEl.style.display  = 'block';
   } else {
     propEl.style.display = 'none';
