@@ -669,9 +669,10 @@ function fmtDate(iso) {
   if (!iso) return '—';
   const parts = iso.split('-');
   if (parts.length < 3) return iso;
-  const yesterday = new Date();
-  yesterday.setDate(yesterday.getDate() - 1);
-  if (iso === yesterday.toISOString().slice(0, 10)) return `Hier, ${parts[2]}/${parts[1]} 🌅`;
+  const y = new Date();
+  y.setDate(y.getDate() - 1);
+  const yStr = `${y.getFullYear()}-${String(y.getMonth()+1).padStart(2,'0')}-${String(y.getDate()).padStart(2,'0')}`;
+  if (iso === yStr) return `Hier, ${parts[2]}/${parts[1]} 🌅`;
   return `Le ${parts[2]}/${parts[1]}`;
 }
 
