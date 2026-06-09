@@ -926,15 +926,30 @@ function renderTeam(teamData, todayStr, currentOpId, targetRow, targetsAll) {
   const listEl  = document.getElementById('team-list');
   const ym      = todayStr ? todayStr.slice(0, 7) : '';
 
-  // Moyenne PMHO mensuelle par opérateur
+  function prevYm(y) {
+    const [yr, mo] = y.split('-').map(Number);
+    return mo === 1 ? `${yr - 1}-12` : `${yr}-${String(mo - 1).padStart(2, '0')}`;
+  }
+  const ymPrev = ym ? prevYm(ym) : '';
+
   const opData = Object.keys(CONFIG.OPERATORS).map(id => {
-    const rows   = teamData.filter(r => r.operateur_id === id && r.date.startsWith(ym) && parseInt2(r.nb_ventes_comptoir_j) > 0);
-    const vals   = rows.map(r => parseFloat2(r.PMHO)).filter(v => v !== null);
-    const avg    = vals.length ? vals.reduce((a, b) => a + b, 0) / vals.length : null;
-    const t      = targetsAll?.find(r => String(r.operateur_id) === String(id) && r.annee_mois === ym);
-    const cible  = parseFloat2(t?.cible_PMHO) ?? parseFloat2(targetRow?.cible_PMHO);
-    return { id, avg, cible };
-  }).filter(o => o.avg !== null);
+    // Mois courant
+    const rows = teamData.filter(r => r.operateur_id === id && r.date.startsWith(ym) && parseInt2(r.nb_ventes_comptoir_j) > 0);
+    const vals = rows.map(r => parseFloat2(r.PMHO)).filter(v => v !== null);
+    const avg  = vals.length ? vals.reduce((a, b) => a + b, 0) / vals.length : null;
+    if (avg !== null) {
+      const t     = targetsAll?.find(r => String(r.operateur_id) === String(id) && r.annee_mois === ym);
+      const cible = parseFloat2(t?.cible_PMHO) ?? parseFloat2(targetRow?.cible_PMHO);
+      return { id, avg, cible, ghost: false };
+    }
+    // Pas de vente ce mois → fallback mois précédent en grisé
+    if (!ymPrev) return null;
+    const rowsPrev = teamData.filter(r => r.operateur_id === id && r.date.startsWith(ymPrev) && parseInt2(r.nb_ventes_comptoir_j) > 0);
+    const valsPrev = rowsPrev.map(r => parseFloat2(r.PMHO)).filter(v => v !== null);
+    const avgPrev  = valsPrev.length ? valsPrev.reduce((a, b) => a + b, 0) / valsPrev.length : null;
+    if (avgPrev !== null) return { id, avg: avgPrev, cible: null, ghost: true };
+    return null;
+  }).filter(o => o !== null);
 
   if (opData.length <= 1) { section.style.display = 'none'; return; }
 
@@ -946,8 +961,11 @@ function renderTeam(teamData, todayStr, currentOpId, targetRow, targetsAll) {
     const opInit  = CONFIG.OPERATORS[o.id];
     const isSelf  = o.id === currentOpId;
     const barW    = maxAvg > 0 ? Math.round((o.avg / maxAvg) * 100) : 0;
-    const color   = gaugeColor(o.avg, o.cible);
-    const opColor = OP_COLORS[o.id] || 'var(--muted)';
+    const color   = o.ghost ? 'var(--muted)' : gaugeColor(o.avg, o.cible);
+    const opColor = o.ghost ? '#c4c4c4' : (OP_COLORS[o.id] || 'var(--muted)');
+    const valHtml = o.ghost
+      ? `<span style="font-style:italic;color:var(--muted)">${fmtPMHO(o.avg)}</span>`
+      : `<span style="color:${color}">${fmtPMHO(o.avg)}</span>`;
     html += `<div class="team-row${isSelf ? ' team-self' : ''}">
       <span class="team-rank">${i + 1}.</span>
       <span class="team-avatar" style="background:${opColor}">${opInit}</span>
@@ -956,7 +974,7 @@ function renderTeam(teamData, todayStr, currentOpId, targetRow, targetsAll) {
           <div class="team-bar-fill" style="width:${barW}%;background:${color}"></div>
         </div>
       </div>
-      <span class="team-val" style="color:${color}">${fmtPMHO(o.avg)}</span>
+      <span class="team-val">${valHtml}</span>
     </div>`;
   });
 
