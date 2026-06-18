@@ -521,6 +521,10 @@
         <div class="team-title">Panier moyen · Mois en cours</div>
         <div id="team-list"></div>
       </div>
+      <div class="team-card" id="team-card-pcr" style="margin-top:10px;display:none">
+        <div class="team-title">PCA/R moyen · Mois en cours</div>
+        <div id="team-list-pcr"></div>
+      </div>
     </div>
 
   </div>
@@ -916,6 +920,7 @@ function renderToday(todayData, flagRow, targetRow, teamData, targetsAll) {
 
   // ── Équipe ──
   renderTeam(teamData, todayStr, opId, targetRow, targetsAll);
+  renderTeamPCR(teamData, todayStr, opId, targetsAll);
 
   // ── Pop-up + confettis ──
   maybeShowPopup(flagRow, todayStr);
@@ -981,6 +986,97 @@ function renderTeam(teamData, todayStr, currentOpId, targetRow, targetsAll) {
 
   listEl.innerHTML = html;
   section.style.display = 'block';
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// Classement PCA/R · Mois en cours
+// ═══════════════════════════════════════════════════════════════════
+
+function renderTeamPCR(teamData, todayStr, currentOpId, targetsAll) {
+  const listEl = document.getElementById('team-list-pcr');
+  const cardEl = document.getElementById('team-card-pcr');
+  const ym     = todayStr ? todayStr.slice(0, 7) : '';
+
+  // Guard : colonnes nb_PCA / nb_PCR absentes du feed Sheets
+  if (!teamData.some(r => r.nb_PCA !== undefined)) {
+    listEl.innerHTML = '<div style="font-size:0.78rem;color:var(--muted);padding:4px 0">Données indisponibles</div>';
+    cardEl.style.display = 'block';
+    return;
+  }
+
+  const opData = Object.keys(CONFIG.OPERATORS).map(id => {
+    const rows = teamData.filter(
+      r => r.operateur_id === id && r.date.startsWith(ym) && parseInt2(r.nb_ventes_comptoir_j) > 0
+    );
+    if (!rows.length) return null;
+
+    const pca_cumul = rows.reduce((s, r) => s + (parseInt2(r.nb_PCA) ?? 0), 0);
+    const pcr_cumul = rows.reduce((s, r) => s + (parseInt2(r.nb_PCR) ?? 0), 0);
+    const realise   = pca_cumul + pcr_cumul;
+
+    const t            = targetsAll?.find(r => String(r.operateur_id) === String(id) && r.annee_mois === ym);
+    const cible_j      = t?.cible_nb_propositions_j ?? null;
+    const jours_ouvres = t ? parseInt(t.jours_ouvres_mois) : NaN;
+    const cible_mois   = (cible_j !== null && !isNaN(jours_ouvres) && jours_ouvres > 0)
+      ? cible_j * jours_ouvres
+      : null;
+
+    return { id, pca_cumul, pcr_cumul, realise, cible_mois };
+  }).filter(o => o !== null);
+
+  if (opData.length <= 1) { cardEl.style.display = 'none'; return; }
+
+  // Tri desc par taux d'atteinte
+  opData.sort((a, b) => {
+    const ta = a.cible_mois ? a.realise / a.cible_mois : 0;
+    const tb = b.cible_mois ? b.realise / b.cible_mois : 0;
+    return tb - ta;
+  });
+
+  // Couleur claire (opacité ~0.45) mappée depuis gaugeColor
+  function claireColor(dense) {
+    if (dense === 'var(--green)')  return 'rgba(34,197,94,0.45)';
+    if (dense === 'var(--orange)') return 'rgba(255,107,53,0.45)';
+    if (dense === 'var(--red)')    return 'rgba(239,68,68,0.45)';
+    return 'rgba(156,163,175,0.45)';
+  }
+
+  let html = '';
+  opData.forEach((o, i) => {
+    const opInit  = CONFIG.OPERATORS[o.id];
+    const isSelf  = o.id === currentOpId;
+    const opColor = OP_COLORS[o.id] || 'var(--muted)';
+
+    const barColor = gaugeColor(o.cible_mois ? o.realise : null, o.cible_mois);
+
+    let denseW = 0, claireW = 0;
+    if (o.cible_mois && o.cible_mois > 0) {
+      if (o.realise > o.cible_mois) {
+        // Dépassement : barre pleine, proportions PCA vs PCR
+        denseW  = o.realise > 0 ? o.pca_cumul / o.realise : 0;
+        claireW = o.realise > 0 ? o.pcr_cumul / o.realise : 0;
+      } else {
+        const totalFill = o.realise / o.cible_mois;
+        denseW  = Math.min(o.pca_cumul / o.cible_mois, totalFill);
+        claireW = totalFill - denseW;
+      }
+    }
+
+    html += `<div class="team-row${isSelf ? ' team-self' : ''}">
+      <span class="team-rank">${i + 1}.</span>
+      <span class="team-avatar" style="background:${opColor}">${opInit}</span>
+      <div class="team-bar-col">
+        <div class="team-bar-track" style="display:flex">
+          <div style="width:${(denseW * 100).toFixed(1)}%;background:${barColor};height:100%"></div>
+          <div style="width:${(claireW * 100).toFixed(1)}%;background:${claireColor(barColor)};height:100%"></div>
+        </div>
+      </div>
+      <span class="team-val" style="color:${barColor}">${o.realise}</span>
+    </div>`;
+  });
+
+  listEl.innerHTML = html;
+  cardEl.style.display = 'block';
 }
 
 // ═══════════════════════════════════════════════════════════════════
