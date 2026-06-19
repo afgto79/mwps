@@ -1022,15 +1022,17 @@ function renderTeamPCR(teamData, todayStr, currentOpId, targetsAll) {
       ? cible_j * jours_ouvres : null;
     const cible_taux_pca = parseFloat2(String(t?.cible_taux_PCA ?? '').replace(',', '.'));
 
-    return { id, pca_cumul, realise, jours_travailles, cible_mois, cible_taux_pca };
+    return { id, pca_cumul, realise, jours_travailles, cible_j, cible_mois, cible_taux_pca };
   }).filter(o => o !== null);
 
   if (opData.length <= 1) { cardEl.style.display = 'none'; return; }
 
-  // Tri desc par remplissage de barre (cumul / cible mensuelle)
+  // Tri desc par remplissage de barre (moyenne /j vs cible /j)
   opData.sort((a, b) => {
-    const fa = a.cible_mois ? a.realise / a.cible_mois : 0;
-    const fb = b.cible_mois ? b.realise / b.cible_mois : 0;
+    const avgA = a.jours_travailles > 0 ? a.realise / a.jours_travailles : 0;
+    const avgB = b.jours_travailles > 0 ? b.realise / b.jours_travailles : 0;
+    const fa = a.cible_j ? avgA / a.cible_j : 0;
+    const fb = b.cible_j ? avgB / b.cible_j : 0;
     return fb - fa;
   });
 
@@ -1050,7 +1052,7 @@ function renderTeamPCR(teamData, todayStr, currentOpId, targetsAll) {
     const opColor = OP_COLORS[o.id] || 'var(--muted)';
 
     const avg    = o.jours_travailles > 0 ? o.realise / o.jours_travailles : 0;
-    const barW   = o.cible_mois ? Math.min(o.realise / o.cible_mois, 1) * 100 : 0;
+    const barW   = o.cible_j ? Math.min(avg / o.cible_j, 1) * 100 : 0;
     const color  = pcaColor(o.pca_cumul, o.realise, o.cible_taux_pca);
     const valStr = avg.toFixed(1).replace('.', ',') + '\u202f/j';
 
